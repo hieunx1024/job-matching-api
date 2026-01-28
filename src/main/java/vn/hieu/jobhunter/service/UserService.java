@@ -10,7 +10,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+// Đảm bảo dùng đúng gói này
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 
 import vn.hieu.jobhunter.domain.Company;
 import vn.hieu.jobhunter.domain.Role;
@@ -28,15 +31,17 @@ public class UserService {
     private final CompanyService companyService;
     private final RoleService roleService;
     private final JavaMailSender javaMailSender;
+    private final PasswordEncoder passwordEncoder;
 
     public UserService(UserRepository userRepository,
-            CompanyService companyService,
-            RoleService roleService,
-            JavaMailSender javaMailSender) {
+                       CompanyService companyService,
+                       RoleService roleService,
+                       JavaMailSender javaMailSender, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.companyService = companyService;
         this.roleService = roleService;
         this.javaMailSender = javaMailSender;
+        this.passwordEncoder = passwordEncoder;
     }
 
     // =================== CREATE USER ===================
@@ -121,6 +126,8 @@ public class UserService {
     public Role getRoleById(long id) {
         return this.roleService.fetchById(id);
     }
+
+
 
     // =================== CONVERT DTO ===================
     public ResCreateUserDTO convertToResCreateUserDTO(User user) {
@@ -221,6 +228,51 @@ public class UserService {
     public User getUserByRefreshTokenAndEmail(String token, String email) {
         return this.userRepository.findByRefreshTokenAndEmail(token, email);
     }
+
+//    public User findOrCreateGoogleUser(GoogleIdToken.Payload payload) {
+//        String email = payload.getEmail();
+//
+//        User user = userRepository.findByEmail(email);
+//        if (user != null) return user;
+//
+//        user = new User();
+//        user.setEmail(email);
+//        user.setName((String) payload.get("name"));
+//        user.setProvider("GOOGLE");
+//        user.setEnabled(true);
+//        user.setRole(roleService.fetchByName("USER"));
+//
+//        return userRepository.save(user);
+//    }
+public User findOrCreateGoogleUser(GoogleIdToken.Payload payload) {
+    String email = payload.getEmail();
+    String name = (String) payload.get("name");
+
+    User user = this.handleGetUserByUsername(email);
+
+    if (user == null) {
+        user = new User();
+        user.setEmail(email);
+        user.setName(name);
+        user.setProvider("GOOGLE");
+
+        // 👇 THÊM DÒNG NÀY ĐỂ SỬA LỖI 👇
+        // Tạo một mật khẩu ngẫu nhiên hoặc cố định rồi mã hóa nó
+        // Người dùng Google sẽ không bao giờ dùng mật khẩu này để đăng nhập
+        user.setPassword(passwordEncoder.encode("GOOGLE_LOGIN_DUMMY_PASSWORD_123"));
+
+        // Set Role mặc định (nếu cần)
+        Role userRole = this.roleService.fetchByName("USER");
+        if (userRole != null) {
+            user.setRole(userRole);
+        }
+
+        user = this.handleCreateUser(user); // Hoặc userRepository.save(user)
+    }
+
+    return user;
+}
+
 
     // =================== EMAIL VERIFICATION ===================
     public String generateVerificationToken(User user) {

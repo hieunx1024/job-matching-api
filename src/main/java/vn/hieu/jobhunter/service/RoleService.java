@@ -153,6 +153,10 @@ public class RoleService {
         return 0;
     }
 
+    public Role fetchByName(String name) {
+        return this.roleRepository.findByName(name);
+    }
+
     public boolean permissionVsRole(Long roleId) {
         long a = this.countPermissionsByRoleId(roleId); // số quyền của role cụ thể
         long b = this.permissionRepository.count(); // tổng số quyền trong hệ thống
