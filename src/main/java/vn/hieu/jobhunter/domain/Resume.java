@@ -19,10 +19,13 @@ import lombok.Setter;
 import vn.hieu.jobhunter.util.SecurityUtil;
 import vn.hieu.jobhunter.util.constant.ResumeStateEnum;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 @Entity
 @Table(name = "resumes")
 @Getter
 @Setter
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Resume {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

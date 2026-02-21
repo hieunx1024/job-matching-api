@@ -91,4 +91,75 @@ public class CompanyService {
     public Optional<Company> findById(long id) {
         return this.companyRepository.findById(id);
     }
+
+    /**
+     * 📌 HR đăng ký công ty mới (chỉ được đăng ký 1 lần)
+     * 
+     * @param currentUser - User hiện tại (HR)
+     * @param reqCompany  - Thông tin công ty cần đăng ký
+     * @return Company đã tạo
+     * @throws IllegalStateException nếu HR đã có công ty
+     */
+    @org.springframework.transaction.annotation.Transactional
+    public Company registerCompany(User currentUser, Company reqCompany) {
+        // Kiểm tra xem HR đã có công ty chưa
+        if (currentUser.getCompany() != null) {
+            throw new IllegalStateException("Bạn đã đại diện cho một công ty, không thể đăng ký thêm");
+        }
+
+        // Tạo công ty mới
+        Company newCompany = new Company();
+        newCompany.setName(reqCompany.getName());
+        newCompany.setDescription(reqCompany.getDescription());
+        newCompany.setAddress(reqCompany.getAddress());
+        newCompany.setLogo(reqCompany.getLogo());
+        newCompany.setVerified(false); // Mặc định chưa được xác thực
+
+        // Lưu công ty
+        Company savedCompany = this.companyRepository.save(newCompany);
+
+        // Gán công ty cho HR
+        currentUser.setCompany(savedCompany);
+        this.userRepository.save(currentUser);
+
+        return savedCompany;
+    }
+
+    /**
+     * 📌 HR cập nhật thông tin công ty của mình
+     * 
+     * @param currentUser - User hiện tại (HR)
+     * @param reqCompany  - Thông tin công ty cần cập nhật
+     * @return Company đã cập nhật
+     * @throws IllegalStateException nếu HR chưa có công ty
+     */
+    @org.springframework.transaction.annotation.Transactional
+    public Company updateMyCompany(User currentUser, Company reqCompany) {
+        // Kiểm tra xem HR đã có công ty chưa
+        if (currentUser.getCompany() == null) {
+            throw new IllegalStateException("Bạn chưa đăng ký công ty nào");
+        }
+
+        // Lấy công ty hiện tại của HR
+        Company currentCompany = currentUser.getCompany();
+
+        // Cập nhật thông tin (không cho phép thay đổi ID)
+        currentCompany.setName(reqCompany.getName());
+        currentCompany.setDescription(reqCompany.getDescription());
+        currentCompany.setAddress(reqCompany.getAddress());
+        currentCompany.setLogo(reqCompany.getLogo());
+
+        // Lưu lại
+        return this.companyRepository.save(currentCompany);
+    }
+
+    /**
+     * 📌 Lấy thông tin công ty của HR hiện tại
+     * 
+     * @param currentUser - User hiện tại (HR)
+     * @return Company hoặc null nếu chưa có
+     */
+    public Company getMyCompany(User currentUser) {
+        return currentUser.getCompany();
+    }
 }

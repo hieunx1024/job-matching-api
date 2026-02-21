@@ -336,8 +336,6 @@
 //
 //}
 
-
-
 package vn.hieu.jobhunter.controller;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -418,11 +416,27 @@ public class AuthController {
         var payload = googleAuthService.verify(req.getIdToken());
 
         // 2. Tìm hoặc tạo user mới từ Payload này
-        // LƯU Ý: Nếu dòng này báo lỗi đỏ, xem Bước 2 bên dưới
         User user = userService.findOrCreateGoogleUser(payload);
 
         // 3. Tạo Token và trả về
         return buildLoginResponse(user);
+    }
+
+    // =================== SOCIAL ONBOARDING (UPDATE ROLE) ===================
+    @PostMapping("/auth/social-onboarding")
+    @ApiMessage("Update role for social login user")
+    public ResponseEntity<ResLoginDTO> socialOnboarding(
+            @Valid @RequestBody vn.hieu.jobhunter.domain.request.ReqSocialOnboardingDTO req) throws IdInvalidException {
+        String email = SecurityUtil.getCurrentUserLogin().orElse("");
+        System.out.println(">>> Social Onboarding Request: " + email + ", Role: " + req.getRole());
+
+        if (email.isEmpty()) {
+            throw new IdInvalidException("Access Token không hợp lệ");
+        }
+
+        User updatedUser = this.userService.handleSelectRole(email, req.getRole());
+
+        return buildLoginResponse(updatedUser);
     }
 
     // =================== REFRESH TOKEN ===================
@@ -476,7 +490,6 @@ public class AuthController {
                 .body(null);
     }
 
-
     // =================== GET ACCOUNT ===================
     @GetMapping("/auth/account")
     @ApiMessage("fetch account")
@@ -491,7 +504,11 @@ public class AuthController {
                     currentUserDB.getId(),
                     currentUserDB.getEmail(),
                     currentUserDB.getName(),
-                    currentUserDB.getRole());
+                    currentUserDB.getRole(),
+                    currentUserDB.getCompany() != null
+                            ? new ResLoginDTO.CompanyUser(currentUserDB.getCompany().getId(),
+                                    currentUserDB.getCompany().getName())
+                            : null);
             userGetAccount.setUser(userLogin);
         }
 
@@ -501,16 +518,15 @@ public class AuthController {
     // =================== REGISTER ===================
     @PostMapping("/auth/register")
     @ApiMessage("Register a new user")
-    public ResponseEntity<ResCreateUserDTO> register(@Valid @RequestBody User postUser)
+    public ResponseEntity<ResCreateUserDTO> register(
+            @Valid @RequestBody vn.hieu.jobhunter.domain.request.ReqRegisterDTO postUser)
             throws IdInvalidException {
 
         if (this.userService.isEmailExist(postUser.getEmail())) {
             throw new IdInvalidException("Email " + postUser.getEmail() + " đã tồn tại.");
         }
 
-        postUser.setPassword(passwordEncoder.encode(postUser.getPassword()));
-
-        User user = this.userService.handleCreateUser(postUser);
+        User user = this.userService.handleRegister(postUser);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -555,7 +571,10 @@ public class AuthController {
                 user.getId(),
                 user.getEmail(),
                 user.getName(),
-                user.getRole());
+                user.getRole(),
+                user.getCompany() != null
+                        ? new ResLoginDTO.CompanyUser(user.getCompany().getId(), user.getCompany().getName())
+                        : null);
         res.setUser(userLogin);
 
         // FIX LỖI: Gọi đúng tên hàm createAccessToken

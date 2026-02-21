@@ -1,5 +1,6 @@
 package vn.hieu.jobhunter.controller;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Pageable;
@@ -40,7 +41,16 @@ public class JobController {
 
     @PostMapping("/jobs")
     @ApiMessage("Create a job")
-    public ResponseEntity<ResCreateJobDTO> create(@Valid @RequestBody Job job) {
+    public ResponseEntity<ResCreateJobDTO> create(@Valid @RequestBody Job job)
+            throws IdInvalidException, vn.hieu.jobhunter.util.error.PostLimitExceededException {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        User user = userService.handleGetUserByUsername(username);
+
+        if (user == null || !"HR".equals(user.getRole().getName())) {
+            throw new IdInvalidException("Access Denied: Only HR can create jobs.");
+        }
+
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(this.jobService.create(job));
     }
@@ -108,8 +118,13 @@ public class JobController {
             // Admin xem tất cả job
             result = this.jobService.fetchAll(spec, pageable);
         } else {
-            // User thường chỉ xem job do mình tạo
-            result = this.jobService.fetchJobsByCreatedBy(username, pageable);
+            // User thường xem job của công ty mình
+            if (user.getCompany() != null) {
+                result = this.jobService.fetchJobsByCompany(user.getCompany().getId(), pageable);
+            } else {
+                // Nếu chưa thuộc công ty nào -> xem job do mình tạo
+                result = this.jobService.fetchJobsByCreatedBy(username, pageable);
+            }
         }
 
         return ResponseEntity.ok(result);
@@ -134,4 +149,31 @@ public class JobController {
                 .body(this.jobService.fetchJobsByCreatedBy(username, pageable));
     }
 
+    @GetMapping("/jobs/count-by-company")
+    @ApiMessage("Get job count for the current user's company")
+    public ResponseEntity<Long> getJobCountByCompany() throws IdInvalidException {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        User user = userService.handleGetUserByUsername(username);
+
+        if (user == null || user.getCompany() == null) {
+            return ResponseEntity.ok(0L);
+        }
+
+        return ResponseEntity.ok(this.jobService.countJobsByCompany(user.getCompany()));
+    }
+
+    @GetMapping("/jobs/search")
+    @ApiMessage("Search jobs by name, skills and location")
+    public ResponseEntity<ResultPaginationDTO> searchJobs(
+            @RequestParam(value = "name", required = false) String name,
+            @RequestParam(value = "location", required = false) String location,
+            @RequestParam(value = "skills", required = false) List<Long> skillIds,
+            Pageable pageable) {
+
+        Specification<Job> spec = vn.hieu.jobhunter.repository.JobSpecification.filterJob(name, location, skillIds);
+        ResultPaginationDTO result = this.jobService.fetchAll(spec, pageable);
+
+        return ResponseEntity.ok(result);
+    }
 }

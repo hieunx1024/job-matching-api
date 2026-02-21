@@ -13,13 +13,10 @@ import org.springframework.web.bind.annotation.*;
 import com.turkraft.springfilter.boot.Filter;
 
 import jakarta.validation.Valid;
-import vn.hieu.jobhunter.domain.Company;
 import vn.hieu.jobhunter.domain.CompanyRegistration;
-import vn.hieu.jobhunter.domain.Role;
 import vn.hieu.jobhunter.domain.User;
 import vn.hieu.jobhunter.domain.response.ResultPaginationDTO;
 import vn.hieu.jobhunter.service.CompanyRegistrationService;
-import vn.hieu.jobhunter.service.CompanyService;
 import vn.hieu.jobhunter.service.RoleService;
 import vn.hieu.jobhunter.service.UserService;
 import vn.hieu.jobhunter.util.annotation.ApiMessage;
@@ -32,14 +29,12 @@ public class CompanyRegistrationController {
     private final CompanyRegistrationService registrationService;
     private final UserService userService;
     private final RoleService roleService;
-    private final CompanyService companyService;
 
     public CompanyRegistrationController(CompanyRegistrationService registrationService, UserService userService,
-            RoleService roleService, CompanyService companyService) {
+            RoleService roleService) {
         this.registrationService = registrationService;
         this.userService = userService;
         this.roleService = roleService;
-        this.companyService = companyService;
     }
 
     /**
@@ -122,32 +117,6 @@ public class CompanyRegistrationController {
         if (updated == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body("Company registration not found");
-        }
-
-        // Nếu phê duyệt, tạo công ty dựa trên thông tin đăng ký
-        if (registrationStatus == RegistrationStatus.APPROVED) {
-            Company company = new Company();
-            company.setName(updated.getCompanyName());
-            company.setDescription(updated.getDescription());
-            company.setAddress(updated.getAddress());
-            company.setLogo(updated.getLogo());
-
-            User user = userService.fetchUserById(updated.getUser().getId());
-            // Gán user tạo công ty với role id = 3
-
-            Optional<Company> companyOptional = this.companyService.findById(user.getCompany().getId());
-            user.setCompany(companyOptional.isPresent() ? companyOptional.get() : null);
-            Role r = roleService.fetchById(2);
-            user.setRole(r);
-            // Lưu lại user
-            userService.handleUpdateUser(user);
-        }
-        if (registrationStatus == RegistrationStatus.REJECTED) {
-            User user = userService.fetchUserById(updated.getUser().getId());
-
-            // Kiểm tra role và company
-
-            companyService.handleDeleteCompany(user.getCompany().getId());
         }
 
         return ResponseEntity.ok(updated);

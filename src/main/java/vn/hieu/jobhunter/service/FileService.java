@@ -23,54 +23,78 @@ public class FileService {
     @Value("${jobhunter.upload-file.base-uri}")
     private String baseURI;
 
-    public void createDirectory(String folder) throws URISyntaxException {
-        URI uri = new URI(folder);
-        Path path = Paths.get(uri);
-        File tmpDir = new File(path.toString());
-        if (!tmpDir.isDirectory()) {
-            try {
-                Files.createDirectory(tmpDir.toPath());
-                System.out.println(">>> CREATE NEW DIRECTORY SUCCESSFUL, PATH = " + tmpDir.toPath());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        } else {
-            System.out.println(">>> SKIP MAKING DIRECTORY, ALREADY EXISTS");
+    private Path getBasePath(String folder) {
+        String safeBaseURI = baseURI;
+        if (safeBaseURI.startsWith("file://")) {
+            safeBaseURI = safeBaseURI.substring(7);
         }
+        return Paths.get(safeBaseURI, folder);
+    }
 
+    public void createDirectory(String folder) throws URISyntaxException {
+        // Log logic kept for compatibility
+        try {
+            // Check if folder is full URI or relative
+            Path p;
+            if (folder.startsWith("file:")) {
+                URI uri = new URI(folder);
+                p = Paths.get(uri);
+            } else {
+                p = Paths.get(folder);
+            }
+
+            if (!Files.exists(p)) {
+                Files.createDirectories(p);
+                System.out.println(">>> CREATE NEW DIRECTORY SUCCESSFUL, PATH = " + p);
+            } else {
+                System.out.println(">>> SKIP MAKING DIRECTORY, ALREADY EXISTS: " + p);
+            }
+        } catch (IOException | IllegalArgumentException e) {
+            e.printStackTrace();
+        }
     }
 
     public String store(MultipartFile file, String folder) throws URISyntaxException, IOException {
-        // create unique filename
         String finalName = System.currentTimeMillis() + "-" + file.getOriginalFilename();
 
-        URI uri = new URI(baseURI + folder + "/" + finalName);
-        Path path = Paths.get(uri);
+        // Resolve path safely using Path API, avoiding URI string concatenation issues
+        Path rootDir = getBasePath(folder);
+        if (!Files.exists(rootDir)) {
+            try {
+                Files.createDirectories(rootDir);
+                System.out.println(">>> Created missing directory: " + rootDir);
+            } catch (IOException e) {
+                System.err.println(">>> FAILED TO CREATE DIRECTORY: " + rootDir);
+                throw e;
+            }
+        }
+
+        Path destination = rootDir.resolve(finalName);
+
         try (InputStream inputStream = file.getInputStream()) {
-            Files.copy(inputStream, path,
-                    StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(inputStream, destination, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            System.err.println(">>> FAILED TO STORE FILE: " + destination);
+            System.err.println(">>> EXCEPTION: " + e.getClass().getName());
+            System.err.println(">>> MESSAGE: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
         return finalName;
     }
 
     public long getFileLength(String fileName, String folder) throws URISyntaxException {
-        URI uri = new URI(baseURI + folder + "/" + fileName);
-        Path path = Paths.get(uri);
-
-        File tmpDir = new File(path.toString());
-
-        // file không tồn tại, hoặc file là 1 director => return 0
-        if (!tmpDir.exists() || tmpDir.isDirectory())
+        Path path = getBasePath(folder).resolve(fileName);
+        File file = path.toFile();
+        if (!file.exists() || file.isDirectory())
             return 0;
-        return tmpDir.length();
+        return file.length();
     }
 
     public InputStreamResource getResource(String fileName, String folder)
             throws URISyntaxException, FileNotFoundException {
-        URI uri = new URI(baseURI + folder + "/" + fileName);
-        Path path = Paths.get(uri);
-
-        File file = new File(path.toString());
+        Path path = getBasePath(folder).resolve(fileName);
+        File file = path.toFile();
         return new InputStreamResource(new FileInputStream(file));
     }
 }

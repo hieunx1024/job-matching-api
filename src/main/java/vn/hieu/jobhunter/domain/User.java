@@ -72,6 +72,14 @@ public class User {
     @JsonIgnore
     private List<CompanyRegistration> companyRegistrations;
 
+    // Logic: Pay-per-post (Credit)
+    private int jobPostingCredits = 0; // Số lượt đăng bài lẻ (mua thêm)
+
+    // Logic: Subscription Plan
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    @JsonIgnore
+    private List<UserSubscription> userSubscriptions;
+
     @PrePersist
     public void handleBeforeCreate() {
         this.createdBy = SecurityUtil.getCurrentUserLogin().isPresent() == true

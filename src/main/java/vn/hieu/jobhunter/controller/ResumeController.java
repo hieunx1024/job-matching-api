@@ -25,6 +25,7 @@ import vn.hieu.jobhunter.domain.User;
 import vn.hieu.jobhunter.domain.response.ResultPaginationDTO;
 import vn.hieu.jobhunter.domain.response.resume.ResCreateResumeDTO;
 import vn.hieu.jobhunter.domain.response.resume.ResUpdateResumeDTO;
+import vn.hieu.jobhunter.domain.response.resume.DashboardStatsDTO;
 import vn.hieu.jobhunter.service.ResumeService;
 import vn.hieu.jobhunter.service.RoleService;
 import vn.hieu.jobhunter.service.UserService;
@@ -88,6 +89,19 @@ public class ResumeController {
 
         Resume existingResume = resumeOptional.get();
 
+        // ✅ Kiểm tra quyền của HR đối với resume này
+        if (user.getCompany() == null) {
+            throw new IdInvalidException("User does not belong to any company");
+        }
+
+        if (existingResume.getJob() == null || existingResume.getJob().getCompany() == null) {
+            throw new IdInvalidException("Resume does not belong to a valid job/company context");
+        }
+
+        if (existingResume.getJob().getCompany().getId() != user.getCompany().getId()) {
+            throw new IdInvalidException("You do not have permission to update this resume");
+        }
+
         // ✅ Chỉ cập nhật những trường được gửi lên
         if (resumeUpdate.getStatus() != null)
             existingResume.setStatus(resumeUpdate.getStatus());
@@ -97,6 +111,46 @@ public class ResumeController {
 
         ResUpdateResumeDTO res = this.resumeService.update(existingResume);
         return ResponseEntity.ok(res);
+    }
+
+    @org.springframework.web.bind.annotation.PatchMapping("/resumes/{id}/status")
+    @ApiMessage("Update resume status")
+    public ResponseEntity<ResUpdateResumeDTO> updateStatus(
+            @PathVariable("id") long id,
+            @RequestBody Resume resumeUpdate) throws IdInvalidException {
+
+        // ✅ Lấy user hiện tại từ token đăng nhập
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        User user = userService.handleGetUserByUsername(username);
+
+        long idRole = user.getRole().getId();
+        boolean isAdmin = roleService.permissionVsRole(idRole);
+
+        if (isAdmin) {
+            throw new IdInvalidException("Admin không được phép cập nhật trạng thái hồ sơ");
+        }
+
+        // ✅ Kiểm tra quyền
+        Optional<Resume> resumeOptional = this.resumeService.fetchById(id);
+        if (resumeOptional.isEmpty()) {
+            throw new IdInvalidException("Resume với id = " + id + " không tồn tại");
+        }
+        Resume existingResume = resumeOptional.get();
+
+        if (user.getCompany() == null) {
+            throw new IdInvalidException("User does not belong to any company");
+        }
+        if (existingResume.getJob() == null || existingResume.getJob().getCompany() == null) {
+            throw new IdInvalidException("Resume does not belong to a valid job/company context");
+        }
+
+        if (existingResume.getJob().getCompany().getId() != user.getCompany().getId()) {
+            throw new IdInvalidException("You do not have permission to update this resume");
+        }
+
+        // Call service
+        return ResponseEntity.ok(this.resumeService.updateStatus(id, resumeUpdate.getStatus(), resumeUpdate.getNote()));
     }
 
     @PutMapping("/resumes")
@@ -156,5 +210,21 @@ public class ResumeController {
         }
 
         return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/resumes/my-history")
+    @ApiMessage("Fetch my application history")
+    public ResponseEntity<ResultPaginationDTO> getMyApplicationHistory(
+            @Filter Specification<Resume> spec,
+            Pageable pageable) {
+        // ✅ Lấy lịch sử ứng tuyển của user hiện tại
+        ResultPaginationDTO result = this.resumeService.fetchResumeByUser(spec, pageable);
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/resumes/my-stats")
+    @ApiMessage("Fetch my application statistics")
+    public ResponseEntity<DashboardStatsDTO> getMyStats() {
+        return ResponseEntity.ok(this.resumeService.getDashboardStats());
     }
 }

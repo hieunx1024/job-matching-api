@@ -8,6 +8,9 @@ import vn.hieu.jobhunter.domain.Resume;
 
 @Repository
 public interface ResumeRepository extends JpaRepository<Resume, Long>,
-                JpaSpecificationExecutor<Resume> {
+        JpaSpecificationExecutor<Resume> {
 
+    long countByEmail(String email);
+
+    long countByEmailAndStatus(String email, vn.hieu.jobhunter.util.constant.ResumeStateEnum status);
 }

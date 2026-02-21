@@ -23,6 +23,7 @@ import vn.hieu.jobhunter.domain.response.ResUpdateUserDTO;
 import vn.hieu.jobhunter.domain.response.ResUserDTO;
 import vn.hieu.jobhunter.domain.response.ResultPaginationDTO;
 import vn.hieu.jobhunter.repository.UserRepository;
+import vn.hieu.jobhunter.util.error.IdInvalidException;
 
 @Service
 public class UserService {
@@ -34,9 +35,9 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
 
     public UserService(UserRepository userRepository,
-                       CompanyService companyService,
-                       RoleService roleService,
-                       JavaMailSender javaMailSender, PasswordEncoder passwordEncoder) {
+            CompanyService companyService,
+            RoleService roleService,
+            JavaMailSender javaMailSender, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.companyService = companyService;
         this.roleService = roleService;
@@ -57,6 +58,37 @@ public class UserService {
             Role r = this.roleService.fetchById(user.getRole().getId());
             user.setRole(r != null ? r : null);
         }
+
+        return this.userRepository.save(user);
+    }
+
+    // =================== REGISTER WITH ROLE ===================
+    public User handleRegister(vn.hieu.jobhunter.domain.request.ReqRegisterDTO dto) throws IdInvalidException {
+        // Validate Role (only CANDIDATE or RECRUITER allowed)
+        if (!dto.getRole().equalsIgnoreCase("CANDIDATE") && !dto.getRole().equalsIgnoreCase("RECRUITER")) {
+            throw new IdInvalidException("Vai trò không hợp lệ. Chỉ chấp nhận CANDIDATE hoặc RECRUITER.");
+        }
+
+        Role role = this.roleService.fetchByName(dto.getRole());
+        if (role == null) {
+            // Fallback: If role is RECRUITER but not found, try HR
+            if ("RECRUITER".equalsIgnoreCase(dto.getRole())) {
+                role = this.roleService.fetchByName("HR");
+            }
+        }
+
+        if (role == null) {
+            throw new IdInvalidException("Vai trò không tồn tại trong hệ thống: " + dto.getRole());
+        }
+
+        User user = new User();
+        user.setName(dto.getName());
+        user.setEmail(dto.getEmail());
+        user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        user.setAge(dto.getAge());
+        user.setGender(dto.getGender());
+        user.setAddress(dto.getAddress());
+        user.setRole(role);
 
         return this.userRepository.save(user);
     }
@@ -116,7 +148,8 @@ public class UserService {
 
     // =================== FETCH BY USERNAME ===================
     public User handleGetUserByUsername(String username) {
-        return this.userRepository.findByEmail(username);
+        // Use eager fetch to load role and permissions for JWT token generation
+        return this.userRepository.findByEmailWithRoleAndPermissions(username);
     }
 
     public boolean isEmailExist(String email) {
@@ -126,8 +159,6 @@ public class UserService {
     public Role getRoleById(long id) {
         return this.roleService.fetchById(id);
     }
-
-
 
     // =================== CONVERT DTO ===================
     public ResCreateUserDTO convertToResCreateUserDTO(User user) {
@@ -229,50 +260,49 @@ public class UserService {
         return this.userRepository.findByRefreshTokenAndEmail(token, email);
     }
 
-//    public User findOrCreateGoogleUser(GoogleIdToken.Payload payload) {
-//        String email = payload.getEmail();
-//
-//        User user = userRepository.findByEmail(email);
-//        if (user != null) return user;
-//
-//        user = new User();
-//        user.setEmail(email);
-//        user.setName((String) payload.get("name"));
-//        user.setProvider("GOOGLE");
-//        user.setEnabled(true);
-//        user.setRole(roleService.fetchByName("USER"));
-//
-//        return userRepository.save(user);
-//    }
-public User findOrCreateGoogleUser(GoogleIdToken.Payload payload) {
-    String email = payload.getEmail();
-    String name = (String) payload.get("name");
+    // public User findOrCreateGoogleUser(GoogleIdToken.Payload payload) {
+    // String email = payload.getEmail();
+    //
+    // User user = userRepository.findByEmail(email);
+    // if (user != null) return user;
+    //
+    // user = new User();
+    // user.setEmail(email);
+    // user.setName((String) payload.get("name"));
+    // user.setProvider("GOOGLE");
+    // user.setEnabled(true);
+    // user.setRole(roleService.fetchByName("USER"));
+    //
+    // return userRepository.save(user);
+    // }
+    public User findOrCreateGoogleUser(GoogleIdToken.Payload payload) {
+        String email = payload.getEmail();
+        String name = (String) payload.get("name");
 
-    User user = this.handleGetUserByUsername(email);
+        User user = this.handleGetUserByUsername(email);
 
-    if (user == null) {
-        user = new User();
-        user.setEmail(email);
-        user.setName(name);
-        user.setProvider("GOOGLE");
+        if (user == null) {
+            user = new User();
+            user.setEmail(email);
+            user.setName(name);
+            user.setProvider("GOOGLE");
 
-        // 👇 THÊM DÒNG NÀY ĐỂ SỬA LỖI 👇
-        // Tạo một mật khẩu ngẫu nhiên hoặc cố định rồi mã hóa nó
-        // Người dùng Google sẽ không bao giờ dùng mật khẩu này để đăng nhập
-        user.setPassword(passwordEncoder.encode("GOOGLE_LOGIN_DUMMY_PASSWORD_123"));
+            // 👇 THÊM DÒNG NÀY ĐỂ SỬA LỖI 👇
+            // Tạo một mật khẩu ngẫu nhiên hoặc cố định rồi mã hóa nó
+            // Người dùng Google sẽ không bao giờ dùng mật khẩu này để đăng nhập
+            user.setPassword(passwordEncoder.encode("GOOGLE_LOGIN_DUMMY_PASSWORD_123"));
 
-        // Set Role mặc định (nếu cần)
-        Role userRole = this.roleService.fetchByName("USER");
-        if (userRole != null) {
-            user.setRole(userRole);
+            // Set Role mặc định (nếu cần)
+            // Role userRole = this.roleService.fetchByName("USER");
+            // if (userRole != null) {
+            // user.setRole(userRole);
+            // }
+
+            user = this.handleCreateUser(user); // Hoặc userRepository.save(user)
         }
 
-        user = this.handleCreateUser(user); // Hoặc userRepository.save(user)
+        return user;
     }
-
-    return user;
-}
-
 
     // =================== EMAIL VERIFICATION ===================
     public String generateVerificationToken(User user) {
@@ -304,5 +334,39 @@ public User findOrCreateGoogleUser(GoogleIdToken.Payload payload) {
         user.setEnabled(true);
         user.setVerificationToken(null);
         userRepository.save(user);
+    }
+
+    // =================== ROLE SELECTION ===================
+    public User handleSelectRole(String email, String roleName) throws IdInvalidException {
+        User currentUser = this.handleGetUserByUsername(email);
+        if (currentUser == null) {
+            throw new IdInvalidException("User not found");
+        }
+
+        // Check if role is already selected (Assume they start with null or "USER")
+        // If current role is one of the final roles, prevent change.
+        if (currentUser.getRole() != null) {
+            String currentRole = currentUser.getRole().getName();
+            // Assuming "USER" is the default temporary role.
+            // If it is NOT "USER" and NOT null, it means they already selected.
+            if (!"USER".equalsIgnoreCase(currentRole)) {
+                throw new IdInvalidException("User role already selected (" + currentRole + ")");
+            }
+        }
+
+        Role role = this.roleService.fetchByName(roleName);
+        if (role == null) {
+            // Fallback: If role is RECRUITER but not found, try HR
+            if ("RECRUITER".equalsIgnoreCase(roleName)) {
+                role = this.roleService.fetchByName("HR");
+            }
+        }
+
+        if (role == null) {
+            throw new IdInvalidException("Role " + roleName + " not found");
+        }
+
+        currentUser.setRole(role);
+        return this.userRepository.save(currentUser);
     }
 }

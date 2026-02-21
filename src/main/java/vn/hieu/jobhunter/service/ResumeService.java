@@ -9,12 +9,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
-import com.turkraft.springfilter.builder.FilterBuilder;
-import com.turkraft.springfilter.converter.FilterSpecification;
-import com.turkraft.springfilter.converter.FilterSpecificationConverter;
-import com.turkraft.springfilter.parser.FilterParser;
-import com.turkraft.springfilter.parser.node.FilterNode;
+import org.springframework.transaction.annotation.Transactional;
 
+import com.turkraft.springfilter.builder.FilterBuilder;
 import vn.hieu.jobhunter.domain.Company;
 import vn.hieu.jobhunter.domain.Job;
 import vn.hieu.jobhunter.domain.Resume;
@@ -23,6 +20,7 @@ import vn.hieu.jobhunter.domain.response.ResultPaginationDTO;
 import vn.hieu.jobhunter.domain.response.resume.ResCreateResumeDTO;
 import vn.hieu.jobhunter.domain.response.resume.ResFetchResumeDTO;
 import vn.hieu.jobhunter.domain.response.resume.ResUpdateResumeDTO;
+import vn.hieu.jobhunter.domain.response.resume.DashboardStatsDTO;
 import vn.hieu.jobhunter.repository.JobRepository;
 import vn.hieu.jobhunter.repository.ResumeRepository;
 import vn.hieu.jobhunter.repository.UserRepository;
@@ -34,23 +32,20 @@ public class ResumeService {
     @Autowired
     FilterBuilder fb;
 
-    @Autowired
-    private FilterParser filterParser;
-
-    @Autowired
-    private FilterSpecificationConverter filterSpecificationConverter;
-
     private final ResumeRepository resumeRepository;
     private final UserRepository userRepository;
     private final JobRepository jobRepository;
+    private final EmailService emailService;
 
     public ResumeService(
             ResumeRepository resumeRepository,
             UserRepository userRepository,
-            JobRepository jobRepository) {
+            JobRepository jobRepository,
+            EmailService emailService) {
         this.resumeRepository = resumeRepository;
         this.userRepository = userRepository;
         this.jobRepository = jobRepository;
+        this.emailService = emailService;
     }
 
     public Optional<Resume> fetchById(long id) {
@@ -169,6 +164,7 @@ public class ResumeService {
         return rs;
     }
 
+    @Transactional
     public ResUpdateResumeDTO updateStatus(long resumeId, ResumeStateEnum newStatus, String note) {
         Optional<Resume> optionalResume = this.resumeRepository.findById(resumeId);
         if (optionalResume.isEmpty()) {
@@ -190,18 +186,37 @@ public class ResumeService {
 
         resume = this.resumeRepository.save(resume);
 
+        // Send email
+        if (resume.getUser() != null && resume.getEmail() != null) {
+            this.emailService.sendEmailAsync(
+                    resume.getEmail(),
+                    "Cập nhật trạng thái hồ sơ - JobHunter",
+                    "Chào " + resume.getUser().getName() + ",\n\n" +
+                            "Trạng thái hồ sơ của bạn cho công việc " + resume.getJob().getName()
+                            + " đã được cập nhật thành: " + newStatus + ".\n" +
+                            (note != null ? "Ghi chú: " + note + "\n" : "") +
+                            "\nTrân trọng,\nĐội ngũ JobHunter");
+        }
+
         ResUpdateResumeDTO res = new ResUpdateResumeDTO();
         res.setUpdatedAt(resume.getUpdatedAt());
         res.setUpdatedBy(resume.getUpdatedBy());
         return res;
     }
 
-    public ResultPaginationDTO fetchResumeByUser(Pageable pageable) {
+    public ResultPaginationDTO fetchResumeByUser(Specification<Resume> spec, Pageable pageable) {
         String email = SecurityUtil.getCurrentUserLogin().orElse("");
-        FilterNode node = filterParser.parse("email='" + email + "'");
-        FilterSpecification<Resume> spec = filterSpecificationConverter.convert(node);
 
-        Page<Resume> page = this.resumeRepository.findAll(spec, pageable);
+        // Create specification to filter by current user's email
+        Specification<Resume> emailSpec = (root, query, cb) -> cb.equal(root.get("email"), email);
+
+        // Combine with the provided specification (if any)
+        Specification<Resume> finalSpec = emailSpec;
+        if (spec != null) {
+            finalSpec = finalSpec.and(spec);
+        }
+
+        Page<Resume> page = this.resumeRepository.findAll(finalSpec, pageable);
 
         ResultPaginationDTO.Meta meta = new ResultPaginationDTO.Meta();
         meta.setPage(pageable.getPageNumber() + 1);
@@ -217,5 +232,16 @@ public class ResumeService {
         rs.setMeta(meta);
         rs.setResult(results);
         return rs;
+    }
+
+    public DashboardStatsDTO getDashboardStats() {
+        String email = SecurityUtil.getCurrentUserLogin().orElse("");
+        long total = this.resumeRepository.countByEmail(email);
+        long pending = this.resumeRepository.countByEmailAndStatus(email, ResumeStateEnum.PENDING);
+        long reviewing = this.resumeRepository.countByEmailAndStatus(email, ResumeStateEnum.REVIEWING);
+        long approved = this.resumeRepository.countByEmailAndStatus(email, ResumeStateEnum.APPROVED);
+        long rejected = this.resumeRepository.countByEmailAndStatus(email, ResumeStateEnum.REJECTED);
+
+        return new DashboardStatsDTO(total, pending, reviewing, approved, rejected);
     }
 }

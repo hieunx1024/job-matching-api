@@ -26,19 +26,28 @@ public class JobService {
     private final SkillRepository skillRepository;
     private final CompanyRepository companyRepository;
 
+    private final JobPostingService jobPostingService;
+
     public JobService(JobRepository jobRepository,
             SkillRepository skillRepository,
-            CompanyRepository companyRepository) {
+            CompanyRepository companyRepository,
+            JobPostingService jobPostingService) {
         this.jobRepository = jobRepository;
         this.skillRepository = skillRepository;
         this.companyRepository = companyRepository;
+        this.jobPostingService = jobPostingService;
     }
 
     public Optional<Job> fetchJobById(long id) {
         return this.jobRepository.findById(id);
     }
 
-    public ResCreateJobDTO create(Job j) {
+    public ResCreateJobDTO create(Job j) throws vn.hieu.jobhunter.util.error.IdInvalidException,
+            vn.hieu.jobhunter.util.error.PostLimitExceededException {
+        // Validate HR permission & consume credit
+        String currentUserEmail = vn.hieu.jobhunter.util.SecurityUtil.getCurrentUserLogin().orElse("");
+        this.jobPostingService.validateAndConsumeJobPost(currentUserEmail);
+
         // check skills
         if (j.getSkills() != null) {
             List<Long> reqSkills = j.getSkills()
@@ -88,6 +97,11 @@ public class JobService {
         Specification<Job> spec = (root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("createdBy"),
                 username);
 
+        return this.fetchAll(spec, pageable);
+    }
+
+    public ResultPaginationDTO fetchJobsByCompany(long companyId, Pageable pageable) {
+        Specification<Job> spec = (root, query, cb) -> cb.equal(root.get("company").get("id"), companyId);
         return this.fetchAll(spec, pageable);
     }
 
@@ -169,5 +183,9 @@ public class JobService {
         rs.setResult(pageUser.getContent());
 
         return rs;
+    }
+
+    public long countJobsByCompany(Company company) {
+        return this.jobRepository.countByCompany(company);
     }
 }

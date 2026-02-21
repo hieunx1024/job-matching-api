@@ -28,6 +28,7 @@ import vn.hieu.jobhunter.util.error.IdInvalidException;
 
 @RestController
 @RequestMapping("/api/v1")
+@org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
 public class PermissionController {
 
     private final PermissionService permissionService;

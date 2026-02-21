@@ -85,32 +85,7 @@ public class SkillController {
             @Filter Specification<Skill> spec,
             Pageable pageable) {
 
-        // Lấy thông tin user hiện tại từ token
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String username = authentication.getName();
-        User user = userService.handleGetUserByUsername(username);
-        long idRole = user.getRole().getId();
-
-        System.out.println("ID của role: " + idRole);
-        System.out.println("ID user: " + user.getId());
-        System.out.println("Username: " + username);
-
-        ResultPaginationDTO result;
-
-        // Đếm số quyền của role
-        long countPermissionsByRoleId = roleService.countPermissionsByRoleId(idRole);
-        System.out.println("Số quyền của role: " + countPermissionsByRoleId);
-
-        boolean permissionVsRole = roleService.permissionVsRole(idRole);
-        System.out.println("Role có toàn quyền hay không: " + permissionVsRole);
-
-        if (permissionVsRole) {
-            // Admin xem tất cả kỹ năng
-            result = this.skillService.fetchAllSkills(spec, pageable);
-        } else {
-            // User thường chỉ xem kỹ năng do họ tạo
-            result = this.skillService.fetchSkillsByCreatedBy(username, pageable);
-        }
+        ResultPaginationDTO result = this.skillService.fetchAllSkills(spec, pageable);
 
         return ResponseEntity.ok(result);
     }

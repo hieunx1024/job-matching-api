@@ -89,4 +89,15 @@ public class GlobalException {
         res.setMessage(ex.getMessage());
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(res);
     }
+
+    @ExceptionHandler(value = {
+            PostLimitExceededException.class,
+    })
+    public ResponseEntity<RestResponse<Object>> handlePostLimitExceededException(Exception ex) {
+        RestResponse<Object> res = new RestResponse<Object>();
+        res.setStatusCode(HttpStatus.PAYMENT_REQUIRED.value());
+        res.setError("Payment Required");
+        res.setMessage(ex.getMessage());
+        return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED).body(res);
+    }
 }

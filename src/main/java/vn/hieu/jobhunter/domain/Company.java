@@ -37,6 +37,8 @@ public class Company {
 
     private String logo;
 
+    private boolean isVerified = false; // Công ty đã được admin xác thực chưa
+
     private Instant createdAt;
 
     private Instant updatedAt;

@@ -47,7 +47,8 @@ public class PermissionInterceptorConfiguration implements WebMvcConfigurer {
                 "/api/v1/users",
                 "/api/v1/permissions",
                 "/api/v1/permissions/**",
-                "api/notifications/last24h"
+                "api/notifications/last24h",
+                "/api/v1/payments/**"
         };
         List<String> dynamicWhiteList = new ArrayList<>(List.of(whiteList));
 

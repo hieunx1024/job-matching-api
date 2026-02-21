@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.turkraft.springfilter.boot.Filter;
 
 import jakarta.validation.Valid;
+import lombok.Getter;
+import lombok.Setter;
 import vn.hieu.jobhunter.domain.Company;
 import vn.hieu.jobhunter.domain.User;
 import vn.hieu.jobhunter.domain.response.ResultPaginationDTO;
@@ -27,6 +29,7 @@ import vn.hieu.jobhunter.service.CompanyService;
 import vn.hieu.jobhunter.service.RoleService;
 import vn.hieu.jobhunter.service.UserService;
 import vn.hieu.jobhunter.util.annotation.ApiMessage;
+import vn.hieu.jobhunter.util.error.IdInvalidException;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -43,6 +46,7 @@ public class CompanyController {
 
     @PostMapping("/companies")
     @ApiMessage("Create company")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> createCompany(@Valid @RequestBody Company reqCompany) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(this.companyService.handleCreateCompany(reqCompany));
@@ -93,13 +97,29 @@ public class CompanyController {
 
     @PutMapping("/companies")
     @ApiMessage("Update company")
-    public ResponseEntity<Company> updateCompany(@Valid @RequestBody Company reqCompany) {
+    public ResponseEntity<Company> updateCompany(@Valid @RequestBody Company reqCompany) throws IdInvalidException {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        User user = userService.handleGetUserByUsername(username);
+        long idRole = user.getRole().getId();
+        boolean isAdmin = roleService.permissionVsRole(idRole);
+
+        if (!isAdmin) {
+            if (user.getCompany() == null) {
+                throw new IdInvalidException("User does not belong to any company");
+            }
+            if (user.getCompany().getId() != reqCompany.getId()) {
+                throw new IdInvalidException("You do not have permission to update this company");
+            }
+        }
+
         Company updatedCompany = this.companyService.handleUpdateCompany(reqCompany);
         return ResponseEntity.ok(updatedCompany);
     }
 
     @DeleteMapping("/companies/{id}")
     @ApiMessage("Delete company")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteCompany(@PathVariable("id") long id) {
         this.companyService.handleDeleteCompany(id);
         return ResponseEntity.ok(null);
@@ -110,5 +130,82 @@ public class CompanyController {
     public ResponseEntity<Company> fetchCompanyById(@PathVariable("id") long id) {
         Optional<Company> cOptional = this.companyService.findById(id);
         return ResponseEntity.ok().body(cOptional.get());
+    }
+
+    /**
+     * 📌 HR đăng ký công ty mới (chỉ được đăng ký 1 lần)
+     */
+    @PostMapping("/companies/register")
+    @ApiMessage("HR registers a new company")
+    public ResponseEntity<?> registerCompany(@Valid @RequestBody Company reqCompany) {
+        try {
+            // Lấy thông tin user hiện tại
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = authentication.getName();
+            User currentUser = userService.handleGetUserByUsername(username);
+
+            // Gọi service để đăng ký công ty
+            Company registeredCompany = companyService.registerCompany(currentUser, reqCompany);
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(registeredCompany);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ErrorResponse(e.getMessage()));
+        }
+    }
+
+    /**
+     * 📌 HR cập nhật thông tin công ty của mình
+     */
+    @PutMapping("/companies/my-company")
+    @ApiMessage("HR updates their company information")
+    public ResponseEntity<?> updateMyCompany(@Valid @RequestBody Company reqCompany) {
+        try {
+            // Lấy thông tin user hiện tại
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = authentication.getName();
+            User currentUser = userService.handleGetUserByUsername(username);
+
+            // Gọi service để cập nhật công ty
+            Company updatedCompany = companyService.updateMyCompany(currentUser, reqCompany);
+
+            return ResponseEntity.ok(updatedCompany);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ErrorResponse(e.getMessage()));
+        }
+    }
+
+    /**
+     * 📌 HR lấy thông tin công ty của mình
+     */
+    @GetMapping("/companies/my-company")
+    @ApiMessage("HR fetches their company information")
+    public ResponseEntity<?> getMyCompany() {
+        // Lấy thông tin user hiện tại
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        User currentUser = userService.handleGetUserByUsername(username);
+
+        // Lấy công ty của HR
+        Company myCompany = companyService.getMyCompany(currentUser);
+
+        if (myCompany == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ErrorResponse("Bạn chưa đăng ký công ty nào"));
+        }
+
+        return ResponseEntity.ok(myCompany);
+    }
+
+    // Inner class for error response
+    @Getter
+    @Setter
+    private static class ErrorResponse {
+        private String message;
+
+        public ErrorResponse(String message) {
+            this.message = message;
+        }
     }
 }

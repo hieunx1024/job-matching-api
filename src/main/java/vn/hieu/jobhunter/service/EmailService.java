@@ -29,12 +29,23 @@ public class EmailService {
         this.templateEngine = templateEngine;
     }
 
+    @Async
     public void sendSimpleEmail() {
         SimpleMailMessage msg = new SimpleMailMessage();
         msg.setTo("ads.jobhunter@gmail.com");
         msg.setSubject("Testing from Spring Boot");
         msg.setText("Hello World from Spring Boot Email");
         this.mailSender.send(msg);
+    }
+
+    @Async
+    public void sendEmailFromTemplateSync(
+            String to,
+            String subject,
+            String templateName,
+            Context context) {
+        String content = templateEngine.process(templateName, context);
+        this.sendEmailSync(to, subject, content, false, true);
     }
 
     public void sendEmailSync(String to, String subject, String content, boolean isMultipart, boolean isHtml) {
@@ -64,6 +75,11 @@ public class EmailService {
         context.setVariable("jobs", value);
 
         String content = templateEngine.process(templateName, context);
+        this.sendEmailSync(to, subject, content, false, true);
+    }
+
+    @Async
+    public void sendEmailAsync(String to, String subject, String content) {
         this.sendEmailSync(to, subject, content, false, true);
     }
 

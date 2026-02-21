@@ -28,23 +28,36 @@ import vn.hieu.jobhunter.service.RoleService;
 import vn.hieu.jobhunter.service.UserService;
 import vn.hieu.jobhunter.util.annotation.ApiMessage;
 import vn.hieu.jobhunter.util.error.IdInvalidException;
+import vn.hieu.jobhunter.domain.request.ReqSelectRoleDTO;
+import vn.hieu.jobhunter.domain.response.ResLoginDTO;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.bind.annotation.PatchMapping;
+import vn.hieu.jobhunter.util.SecurityUtil;
 
 @RestController
 @RequestMapping("/api/v1")
 public class UserController {
     private final UserService userService;
-
     private final RoleService roleService;
     private final PasswordEncoder passwordEncoder;
+    private final SecurityUtil securityUtil;
 
-    public UserController(UserService userService, RoleService roleService, PasswordEncoder passwordEncoder) {
+    @Value("${jobhunter.jwt.refresh-token-validity-in-seconds}")
+    private long refreshTokenExpiration;
+
+    public UserController(UserService userService, RoleService roleService, PasswordEncoder passwordEncoder,
+            SecurityUtil securityUtil) {
         this.userService = userService;
         this.roleService = roleService;
         this.passwordEncoder = passwordEncoder;
+        this.securityUtil = securityUtil;
     }
 
     @PostMapping("/users")
     @ApiMessage("Create a new user")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ResCreateUserDTO> createNewUser(@Valid @RequestBody User postManUser)
             throws IdInvalidException {
         boolean isEmailExist = this.userService.isEmailExist(postManUser.getEmail());
@@ -61,6 +74,7 @@ public class UserController {
 
     @DeleteMapping("/users/{id}")
     @ApiMessage("Delete a user")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteUser(@PathVariable("id") long id)
             throws IdInvalidException {
         User currentUser = this.userService.fetchUserById(id);
@@ -131,12 +145,87 @@ public class UserController {
 
     @PutMapping("/users")
     @ApiMessage("Update a user")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ResUpdateUserDTO> updateUser(@RequestBody User user) throws IdInvalidException {
         User ericUser = this.userService.handleUpdateUser(user);
         if (ericUser == null) {
             throw new IdInvalidException("User với id = " + user.getId() + " không tồn tại");
         }
         return ResponseEntity.ok(this.userService.convertToResUpdateUserDTO(ericUser));
+    }
+
+    @PatchMapping("/users/select-role")
+    @ApiMessage("Select role for user")
+    public ResponseEntity<ResLoginDTO> selectRole(@RequestBody ReqSelectRoleDTO req) throws IdInvalidException {
+        String email = SecurityUtil.getCurrentUserLogin().orElse("");
+        if (email.isEmpty()) {
+            throw new IdInvalidException("Access token invalid");
+        }
+
+        User updatedUser = this.userService.handleSelectRole(email, req.getRoleName());
+        return buildLoginResponse(updatedUser);
+    }
+
+    @PatchMapping("/users/profile")
+    @ApiMessage("Update user profile")
+    public ResponseEntity<ResUserDTO> updateProfile(@RequestBody User profileUpdate) throws IdInvalidException {
+        String email = SecurityUtil.getCurrentUserLogin().orElse("");
+        if (email.isEmpty()) {
+            throw new IdInvalidException("Access token invalid");
+        }
+
+        User currentUser = this.userService.handleGetUserByUsername(email);
+        if (currentUser == null) {
+            throw new IdInvalidException("User not found");
+        }
+
+        // Update allowed fields
+        if (profileUpdate.getName() != null) {
+            currentUser.setName(profileUpdate.getName());
+        }
+        if (profileUpdate.getAddress() != null) {
+            currentUser.setAddress(profileUpdate.getAddress());
+        }
+        if (profileUpdate.getAge() != 0) {
+            currentUser.setAge(profileUpdate.getAge());
+        }
+        if (profileUpdate.getGender() != null) {
+            currentUser.setGender(profileUpdate.getGender());
+        }
+
+        User updatedUser = this.userService.handleUpdateUser(currentUser);
+        return ResponseEntity.ok(this.userService.convertToResUserDTO(updatedUser));
+    }
+
+    private ResponseEntity<ResLoginDTO> buildLoginResponse(User user) {
+        ResLoginDTO res = new ResLoginDTO();
+        ResLoginDTO.UserLogin userLogin = new ResLoginDTO.UserLogin(
+                user.getId(),
+                user.getEmail(),
+                user.getName(),
+                user.getRole(),
+                user.getCompany() != null
+                        ? new ResLoginDTO.CompanyUser(user.getCompany().getId(), user.getCompany().getName())
+                        : null);
+        res.setUser(userLogin);
+
+        String access_token = this.securityUtil.createAccessToken(user.getEmail(), res);
+        res.setAccessToken(access_token);
+
+        String refresh_token = this.securityUtil.createRefreshToken(user.getEmail(), res);
+
+        this.userService.updateUserToken(refresh_token, user.getEmail());
+
+        ResponseCookie cookie = ResponseCookie.from("refresh_token", refresh_token)
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(refreshTokenExpiration)
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .body(res);
     }
 
 }

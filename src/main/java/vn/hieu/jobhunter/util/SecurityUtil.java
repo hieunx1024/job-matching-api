@@ -56,11 +56,12 @@ public class SecurityUtil {
         Instant now = Instant.now();
         Instant validity = now.plus(this.accessTokenExpiration, ChronoUnit.SECONDS);
 
-        // hardcode permission (for testing)
-        List<String> listAuthority = new ArrayList<String>();
-
-        listAuthority.add("ROLE_USER_CREATE");
-        listAuthority.add("ROLE_USER_UPDATE");
+        // Get permissions from user's role
+        List<String> listAuthority = dto.getUser().getRole() != null && dto.getUser().getRole().getPermissions() != null
+                ? dto.getUser().getRole().getPermissions().stream()
+                        .map(permission -> permission.getName())
+                        .toList()
+                : new ArrayList<>();
 
         // @formatter:off
         JwtClaimsSet claims = JwtClaimsSet.builder()

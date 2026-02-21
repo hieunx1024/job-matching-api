@@ -31,6 +31,7 @@ public class RoleController {
 
     @PostMapping("/roles")
     @ApiMessage("Create a role")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Role> create(@Valid @RequestBody Role r) throws IdInvalidException {
         if (this.roleService.existByName(r.getName())) {
             throw new IdInvalidException("Role với name = " + r.getName() + " đã tồn tại");
@@ -40,6 +41,7 @@ public class RoleController {
 
     @PutMapping("/roles")
     @ApiMessage("Update a role")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Role> update(@Valid @RequestBody Role r) throws IdInvalidException {
         if (this.roleService.fetchById(r.getId()) == null) {
             throw new IdInvalidException("Role với id = " + r.getId() + " không tồn tại");
@@ -49,6 +51,7 @@ public class RoleController {
 
     @DeleteMapping("/roles/{id}")
     @ApiMessage("Delete a role")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable("id") long id) throws IdInvalidException {
         if (this.roleService.fetchById(id) == null) {
             throw new IdInvalidException("Role với id = " + id + " không tồn tại");

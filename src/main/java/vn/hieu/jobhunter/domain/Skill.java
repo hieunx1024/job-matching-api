@@ -16,6 +16,7 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import vn.hieu.jobhunter.util.SecurityUtil;
 
@@ -23,6 +24,7 @@ import vn.hieu.jobhunter.util.SecurityUtil;
 @Table(name = "skills")
 @Getter
 @Setter
+@NoArgsConstructor
 public class Skill {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,6 +32,10 @@ public class Skill {
 
     @NotBlank(message = "name không được để trống")
     private String name;
+
+    public Skill(String name) {
+        this.name = name;
+    }
 
     private Instant createdAt;
     private Instant updatedAt;

@@ -53,7 +53,7 @@ public class SecurityConfiguration {
                 "/swagger-ui/**",
                 "/swagger-ui.html",
                 "api/notifications/last24h",
-
+                "/api/v1/payments/vnpay-return",
         };
 
         http
@@ -69,8 +69,9 @@ public class SecurityConfiguration {
                                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/google").permitAll()
 
                                 .anyRequest().authenticated())
-                .oauth2ResourceServer((oauth2) -> oauth2.jwt(jwt->jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
-                        .authenticationEntryPoint(customAuthenticationEntryPoint))
+                .oauth2ResourceServer(
+                        (oauth2) -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                                .authenticationEntryPoint(customAuthenticationEntryPoint))
                 // .exceptionHandling(
                 // exceptions -> exceptions
                 // .authenticationEntryPoint(customAuthenticationEntryPoint) // 401
