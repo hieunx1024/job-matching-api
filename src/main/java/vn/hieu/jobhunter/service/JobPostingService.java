@@ -44,7 +44,7 @@ public class JobPostingService {
         // Logic 0: Free Tier (Max 2 posts per company)
         if (user.getCompany() != null) {
             long currentJobs = this.jobRepository.countByCompany(user.getCompany());
-            if (currentJobs < 5) {
+            if (currentJobs < 3) {
                 // Free tier, allow post
                 return;
             }
@@ -62,6 +62,7 @@ public class JobPostingService {
                 // Trừ lượt nếu có giới hạn
                 if (sub.getSubscription().getLimitPosts() != -1) {
                     sub.setUsedPosts(sub.getUsedPosts() + 1);
+                    sub.setRemainingPosts(sub.getRemainingPosts() - 1);
                     // Nếu hết lượt thì có thể set active = false, nhưng tùy business logic
                     // Ở đây chỉ trừ lượt
                     this.userSubscriptionRepository.save(sub);

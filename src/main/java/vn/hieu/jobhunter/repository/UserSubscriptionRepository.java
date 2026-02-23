@@ -20,4 +20,7 @@ public interface UserSubscriptionRepository extends JpaRepository<UserSubscripti
     Optional<UserSubscription> findFirstByUserAndActiveTrueAndEndDateAfterOrderByEndDateAsc(User user, Instant now);
 
     List<UserSubscription> findByUserAndActiveTrue(User user);
+
+    @org.springframework.data.jpa.repository.Query("SELECT COUNT(DISTINCT us.user.id) FROM UserSubscription us WHERE us.active = true")
+    long countDistinctUserByActiveTrue();
 }

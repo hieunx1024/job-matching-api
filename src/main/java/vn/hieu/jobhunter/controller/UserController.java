@@ -113,7 +113,7 @@ public class UserController {
         ResultPaginationDTO result;
 
         // ✅ Nếu role hoặc role_id = null → coi như user thường
-        if (currentUser.getRole() == null || currentUser.getRole().getId() != 0) {
+        if (currentUser.getRole() == null || currentUser.getRole().getId() == 0) {
 
             result = this.userService.fetchAllUserByCreatorOrSelf(
                     currentUser.getEmail(),

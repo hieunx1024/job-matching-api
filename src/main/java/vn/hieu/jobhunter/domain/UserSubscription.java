@@ -37,6 +37,7 @@ public class UserSubscription {
     private Instant endDate;
     private int totalPosts; // Tổng số lượt đăng ban đầu
     private int usedPosts; // Số lượt đăng đã sử dụng
+    private int remainingPosts;
 
     private boolean active; // Trạng thái gói (true/false)
 

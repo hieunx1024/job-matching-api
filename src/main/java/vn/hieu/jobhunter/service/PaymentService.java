@@ -56,6 +56,7 @@ public class PaymentService {
         return strategy.generatePaymentUrl(history, returnUrl);
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public void processPaymentWebhook(String transactionId, String status) {
         PaymentHistory history = paymentHistoryRepository.findByTransactionId(transactionId)
                 .orElseThrow(() -> new RuntimeException("Transaction not found"));
@@ -80,6 +81,7 @@ public class PaymentService {
             userSub.setEndDate(Instant.now().plusSeconds((long) sub.getDurationDays() * 24 * 60 * 60));
             userSub.setTotalPosts(sub.getLimitPosts());
             userSub.setUsedPosts(0);
+            userSub.setRemainingPosts(sub.getLimitPosts());
             userSub.setActive(true);
 
             // If they had an active package, we might update it to inactive, or stack the
