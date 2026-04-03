@@ -145,6 +145,15 @@ public class ResumeService {
         return this.fetchAllResume(spec, pageable);
     }
 
+    public ResultPaginationDTO fetchResumesByJobCreator(String creator, Specification<Resume> spec, Pageable pageable) {
+        Specification<Resume> specCreator = (root, query, cb) -> cb.equal(root.get("job").get("createdBy"), creator);
+        Specification<Resume> finalSpec = specCreator;
+        if (spec != null) {
+            finalSpec = finalSpec.and(spec);
+        }
+        return this.fetchAllResume(finalSpec, pageable);
+    }
+
     public ResultPaginationDTO fetchAllResume(Specification<Resume> spec, Pageable pageable) {
         Page<Resume> page = this.resumeRepository.findAll(spec, pageable);
 

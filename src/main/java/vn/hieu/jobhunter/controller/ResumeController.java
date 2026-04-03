@@ -199,13 +199,12 @@ public class ResumeController {
             // ✅ Admin xem tất cả resumes
             result = this.resumeService.fetchAllResume(spec, pageable);
         } else {
-            // ✅ User chỉ xem resume thuộc công ty của mình
+            // ✅ User (HR) chỉ xem resume thuộc CÁC CÔNG VIỆC MÀ MÌNH TẠO 
             if (user.getCompany() == null) {
                 // Không có công ty → danh sách rỗng
                 result = new ResultPaginationDTO();
             } else {
-                long companyId = user.getCompany().getId();
-                result = this.resumeService.fetchResumesByCompanyId(companyId, pageable);
+                result = this.resumeService.fetchResumesByJobCreator(username, spec, pageable);
             }
         }
 

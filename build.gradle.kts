@@ -1,7 +1,7 @@
 plugins {
     java
-    id("org.springframework.boot") version "3.2.4"
-    id("io.spring.dependency-management") version "1.1.4"
+    id("org.springframework.boot") version "3.4.3"
+    id("io.spring.dependency-management") version "1.1.7"
     id("io.freefair.lombok") version "8.6"
 }
 
@@ -14,6 +14,13 @@ java {
 
 repositories {
     mavenCentral()
+    maven { url = uri("https://repo.spring.io/milestone") }
+}
+
+dependencyManagement {
+    imports {
+        mavenBom("org.springframework.ai:spring-ai-bom:1.0.0-M5")
+    }
 }
 
 dependencies {
@@ -26,6 +33,8 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
 
 	implementation("com.google.api-client:google-api-client:2.2.0")
+	implementation("org.springframework.ai:spring-ai-openai-spring-boot-starter")
+	implementation("org.springframework.ai:spring-ai-openai")
 
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0")
 	implementation("com.turkraft.springfilter:jpa:3.1.7")

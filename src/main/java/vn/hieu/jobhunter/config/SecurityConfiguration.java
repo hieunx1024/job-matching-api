@@ -54,6 +54,7 @@ public class SecurityConfiguration {
                 "/swagger-ui.html",
                 "api/notifications/last24h",
                 "/api/v1/payments/vnpay-return",
+                "/api/v1/chat"
         };
 
         http
