@@ -27,7 +27,7 @@ public class JobSearchFunction {
     }
 
     @Bean
-    @Description("Tìm kiếm các công việc có sẵn trong hệ thống dựa trên địa điểm, kỹ năng, và mức lương tối thiểu")
+    @Description("Tìm kiếm các công việc có sẵn trong hệ thống dựa trên địa điểm, kỹ năng (hoặc tên công việc), và mức lương tối thiểu")
     public Function<JobSearchRequest, List<ChatResponse.JobLink>> searchJobs() {
         return request -> {
             System.out.println("AI called searchJobs with: " + request);
@@ -67,8 +67,12 @@ public class JobSearchFunction {
 
     private Specification<Job> hasSkill(String skill) {
         return (root, query, cb) -> {
-            Join<Job, Skill> skills = root.join("skills");
-            return cb.like(cb.lower(skills.get("name")), "%" + skill.toLowerCase() + "%");
+            query.distinct(true);
+            Join<Job, Skill> skills = root.join("skills", jakarta.persistence.criteria.JoinType.LEFT);
+            return cb.or(
+                    cb.like(cb.lower(root.get("name")), "%" + skill.toLowerCase() + "%"),
+                    cb.like(cb.lower(skills.get("name")), "%" + skill.toLowerCase() + "%")
+            );
         };
     }
 
