@@ -30,7 +30,7 @@ public class Company {
     @NotBlank(message = "name không được để trống")
     private String name;
 
-    @Column(columnDefinition = "MEDIUMTEXT")
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     private String address;

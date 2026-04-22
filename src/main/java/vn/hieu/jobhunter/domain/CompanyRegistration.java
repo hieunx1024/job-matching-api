@@ -26,7 +26,7 @@ public class CompanyRegistration {
     private User user;
 
     private String companyName;
-    @Column(columnDefinition = "MEDIUMTEXT")
+    @Column(columnDefinition = "TEXT")
     private String description;
     private String address;
     private String logo;

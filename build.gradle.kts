@@ -40,7 +40,7 @@ dependencies {
 	implementation("com.turkraft.springfilter:jpa:3.1.7")
 	implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
 
-	runtimeOnly("com.mysql:mysql-connector-j")
+	runtimeOnly("org.postgresql:postgresql")
 	developmentOnly("org.springframework.boot:spring-boot-devtools")
 
 	testImplementation("org.springframework.boot:spring-boot-starter-test")

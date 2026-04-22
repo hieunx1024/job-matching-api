@@ -51,7 +51,7 @@ public class Job {
     @Enumerated(EnumType.STRING)
     private LevelEnum level;
 
-    @Column(columnDefinition = "MEDIUMTEXT")
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", timezone = "UTC")
