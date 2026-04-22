@@ -39,3 +39,14 @@ out/
 
 ### env
 .env
+env
+
+### SQLite / Database files
+*.db
+*.sqlite
+*.sqlite3
+.Database.sql
+
+### Logs
+*.log
+run.log
