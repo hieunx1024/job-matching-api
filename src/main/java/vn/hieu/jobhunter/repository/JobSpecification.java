@@ -11,7 +11,7 @@ import vn.hieu.jobhunter.domain.Skill;
 
 public class JobSpecification {
 
-    public static Specification<Job> filterJob(String keyword, String location, List<Long> skillIds) {
+    public static Specification<Job> filterJob(String keyword, String location, List<Long> skillIds, String level, Double minSalary) {
         return (root, query, cb) -> {
             Predicate predicate = cb.conjunction();
 
@@ -23,6 +23,21 @@ public class JobSpecification {
             // Filter by Location (LIKE)
             if (location != null && !location.isEmpty()) {
                 predicate = cb.and(predicate, cb.like(root.get("location"), "%" + location + "%"));
+            }
+
+            // Filter by Level (Exact)
+            if (level != null && !level.isEmpty()) {
+                try {
+                    vn.hieu.jobhunter.util.constant.LevelEnum levelEnum = vn.hieu.jobhunter.util.constant.LevelEnum.valueOf(level);
+                    predicate = cb.and(predicate, cb.equal(root.get("level"), levelEnum));
+                } catch (IllegalArgumentException e) {
+                    // Invalid enum value, ignore
+                }
+            }
+
+            // Filter by Salary (>= minSalary)
+            if (minSalary != null) {
+                predicate = cb.and(predicate, cb.greaterThanOrEqualTo(root.get("salary"), minSalary));
             }
 
             // Filter by Skills (IN)

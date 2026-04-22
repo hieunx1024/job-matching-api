@@ -20,12 +20,18 @@ public class ChatbotService {
     }
 
     public ChatResponse processChat(ChatRequest request) {
+        String currentTime = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss dd/MM/yyyy"));
         String systemPrompt = "Bạn là một trợ lý ảo hỗ trợ tìm kiếm việc làm cho hệ thống JobHunter.\n" +
+                "Thời gian hiện tại là: " + currentTime + ".\n" +
                 "Hãy thân thiện, chuyên nghiệp, ngắn gọn và hữu ích.\n" +
-                "Nếu người dùng có nhu cầu tìm việc, hãy MỞ công cụ 'searchJobs' để tìm trong cơ sở dữ liệu.\n" +
-                "Sau khi có kết quả từ 'searchJobs', hãy trả về câu trả lời giới thiệu một cách lịch sự, format đoạn văn bằng Markdown (KHÔNG cần liệt kê công việc thành danh sách trừ khi cần thiết, vì UI đã hiển thị dạng thẻ Job cards riêng rồi).\n"
-                +
-                "Nếu không có kết quả từ DB, hãy báo cho họ biết là không tìm thấy.";
+                "NHIỆM VỤ QUAN TRỌNG: Khi người dùng yêu cầu tìm việc (ví dụ: 'tìm việc senior', 'việc làm lương 10tr', 'tìm việc ở Hà Nội'), hãy GỌI NGAY công cụ 'searchJobs' với các tham số bạn trích xuất được.\n" +
+                "ĐỪNG hỏi thêm thông tin nếu bạn đã trích xuất được ít nhất một tiêu chí (địa điểm, kỹ năng, lương, hoặc cấp bậc).\n" +
+                "Các tham số hỗ trợ:\n" +
+                "- location: Địa điểm (VD: Hà Nội, HCM...)\n" +
+                "- skill: Tên công việc hoặc kỹ năng (VD: Java, Kế toán...)\n" +
+                "- minSalary: Mức lương tối thiểu (Số, VD: 10000000)\n" +
+                "- level: Cấp bậc (Phải là một trong: INTERN, FRESHER, JUNIOR, MIDDLE, SENIOR).\n" +
+                "Sau khi có kết quả, hãy phản hồi lịch sự bằng Markdown. Nếu không có kết quả, hãy báo cho người dùng và gợi ý họ thay đổi tiêu chí.";
 
         JobSearchContext.clear();
         try {

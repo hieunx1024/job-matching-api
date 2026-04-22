@@ -158,14 +158,16 @@ public class JobController {
     }
 
     @GetMapping("/jobs/search")
-    @ApiMessage("Search jobs by name, skills and location")
+    @ApiMessage("Search jobs by name, skills, location, level and salary")
     public ResponseEntity<ResultPaginationDTO> searchJobs(
             @RequestParam(value = "name", required = false) String name,
             @RequestParam(value = "location", required = false) String location,
+            @RequestParam(value = "level", required = false) String level,
+            @RequestParam(value = "minSalary", required = false) Double minSalary,
             @RequestParam(value = "skills", required = false) List<Long> skillIds,
             Pageable pageable) {
 
-        Specification<Job> spec = vn.hieu.jobhunter.repository.JobSpecification.filterJob(name, location, skillIds);
+        Specification<Job> spec = vn.hieu.jobhunter.repository.JobSpecification.filterJob(name, location, skillIds, level, minSalary);
         ResultPaginationDTO result = this.jobService.fetchAll(spec, pageable);
 
         return ResponseEntity.ok(result);

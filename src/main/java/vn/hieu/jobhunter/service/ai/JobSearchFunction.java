@@ -23,11 +23,11 @@ public class JobSearchFunction {
 
     private final JobRepository jobRepository;
 
-    public record JobSearchRequest(String location, String skill, Double minSalary) {
+    public record JobSearchRequest(String location, String skill, Double minSalary, String level) {
     }
 
     @Bean
-    @Description("Tìm kiếm các công việc có sẵn trong hệ thống dựa trên địa điểm, kỹ năng (hoặc tên công việc), và mức lương tối thiểu")
+    @Description("Tìm kiếm các công việc có sẵn trong hệ thống dựa trên địa điểm, kỹ năng (hoặc tên công việc), mức lương tối thiểu, và cấp bậc (INTERN, FRESHER, JUNIOR, MIDDLE, SENIOR)")
     public Function<JobSearchRequest, List<ChatResponse.JobLink>> searchJobs() {
         return request -> {
             System.out.println("AI called searchJobs with: " + request);
@@ -41,6 +41,9 @@ public class JobSearchFunction {
             }
             if (request.minSalary() != null) {
                 spec = spec.and(hasMinSalary(request.minSalary()));
+            }
+            if (request.level() != null && !request.level().isBlank()) {
+                spec = spec.and(hasLevel(request.level()));
             }
 
             Page<Job> jobPage = jobRepository.findAll(spec, PageRequest.of(0, 5));
@@ -78,5 +81,16 @@ public class JobSearchFunction {
 
     private Specification<Job> hasMinSalary(Double minSalary) {
         return (root, query, cb) -> cb.greaterThanOrEqualTo(root.get("salary"), minSalary);
+    }
+
+    private Specification<Job> hasLevel(String level) {
+        return (root, query, cb) -> {
+            try {
+                vn.hieu.jobhunter.util.constant.LevelEnum levelEnum = vn.hieu.jobhunter.util.constant.LevelEnum.valueOf(level.toUpperCase());
+                return cb.equal(root.get("level"), levelEnum);
+            } catch (Exception e) {
+                return cb.conjunction(); // Return always true if level is invalid
+            }
+        };
     }
 }
