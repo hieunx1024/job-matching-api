@@ -1,0 +1,35 @@
+services:
+  # 1. Java Backend Service
+  - type: web
+    name: job-matching-api
+    env: docker
+    plan: free # Có thể đổi thành starter nếu cần hiệu năng cao hơn
+    region: singapore # Chọn khu vực gần Việt Nam
+    dockerContext: .
+    dockerFilePath: ./Dockerfile
+    envVars:
+      - key: DB_URL
+        # Render tự động cung cấp connection string cho Postgres nội bộ
+        fromDatabase:
+          name: jobhunter-db
+          property: connectionString
+      - key: DB_USERNAME
+        fromDatabase:
+          name: jobhunter-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: jobhunter-db
+          property: password
+      - key: JWT_SECRET
+        sync: false # Bạn sẽ tự điền giá trị này trên giao diện Render Dashboard
+      - key: PORT
+        value: 8080
+
+databases:
+  # 2. Managed PostgreSQL Instance
+  - name: jobhunter-db
+    databaseName: jobhunter_db
+    user: postgres
+    region: singapore
+    plan: free # Render cho phép dùng Postgres miễn phí trong 90 ngày
