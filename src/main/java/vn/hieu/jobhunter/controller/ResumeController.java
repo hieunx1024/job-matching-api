@@ -12,6 +12,9 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -57,6 +60,16 @@ public class ResumeController {
 
         // Tạo resume mới
         return ResponseEntity.status(HttpStatus.CREATED).body(this.resumeService.create(resume));
+    }
+
+    @PostMapping("/resumes/apply")
+    @ApiMessage("Apply for a job")
+    public ResponseEntity<ResCreateResumeDTO> applyJob(
+            @RequestParam("jobId") long jobId,
+            @RequestParam(value = "userCvId", required = false) Long userCvId,
+            @RequestPart(value = "file", required = false) MultipartFile file
+    ) throws Exception {
+        return ResponseEntity.status(HttpStatus.CREATED).body(this.resumeService.handleApplyJob(jobId, userCvId, file));
     }
 
     @PutMapping("/resumes/{id}")

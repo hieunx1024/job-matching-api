@@ -49,7 +49,6 @@ public class EmailService {
     }
 
     public void sendEmailSync(String to, String subject, String content, boolean isMultipart, boolean isHtml) {
-        // Prepare message using a Spring helper
         MimeMessage mimeMessage = this.javaMailSender.createMimeMessage();
         try {
             MimeMessageHelper message = new MimeMessageHelper(mimeMessage, isMultipart, StandardCharsets.UTF_8.name());
@@ -80,6 +79,30 @@ public class EmailService {
 
     @Async
     public void sendEmailAsync(String to, String subject, String content) {
+        this.sendEmailSync(to, subject, content, false, true);
+    }
+
+    @Async
+    public void sendResumeStatusUpdateEmail(
+            String to,
+            String candidateName,
+            String jobName,
+            String companyName,
+            String status,
+            String note) {
+
+        Context context = new Context();
+        context.setVariable("candidateName", candidateName);
+        context.setVariable("jobName", jobName);
+        context.setVariable("companyName", companyName);
+        context.setVariable("note", note);
+
+        String templateName = status.equals("APPROVED") ? "resume-approved" : "resume-rejected";
+        String subject = status.equals("APPROVED")
+                ? "Chúc mừng! Bạn đã trúng tuyển tại " + companyName
+                : "Thông báo kết quả ứng tuyển - " + companyName;
+
+        String content = templateEngine.process(templateName, context);
         this.sendEmailSync(to, subject, content, false, true);
     }
 

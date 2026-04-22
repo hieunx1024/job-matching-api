@@ -65,6 +65,10 @@ public class User {
     @JsonIgnore
     List<Resume> resumes;
 
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    @JsonIgnore
+    private List<UserCv> userCvs;
+
     @ManyToOne
     @JoinColumn(name = "role_id")
     private Role role;

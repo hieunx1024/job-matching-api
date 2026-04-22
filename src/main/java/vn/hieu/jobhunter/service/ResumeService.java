@@ -24,8 +24,13 @@ import vn.hieu.jobhunter.domain.response.resume.DashboardStatsDTO;
 import vn.hieu.jobhunter.repository.JobRepository;
 import vn.hieu.jobhunter.repository.ResumeRepository;
 import vn.hieu.jobhunter.repository.UserRepository;
+import vn.hieu.jobhunter.repository.UserCvRepository;
 import vn.hieu.jobhunter.util.SecurityUtil;
 import vn.hieu.jobhunter.util.constant.ResumeStateEnum;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.multipart.MultipartFile;
+import vn.hieu.jobhunter.domain.UserCv;
 
 @Service
 public class ResumeService {
@@ -36,16 +41,25 @@ public class ResumeService {
     private final UserRepository userRepository;
     private final JobRepository jobRepository;
     private final EmailService emailService;
+    private final UserCvRepository userCvRepository;
+    private final FileService fileService;
+
+    @Value("${jobhunter.upload-file.base-uri}")
+    private String baseURI;
 
     public ResumeService(
             ResumeRepository resumeRepository,
             UserRepository userRepository,
             JobRepository jobRepository,
-            EmailService emailService) {
+            EmailService emailService,
+            UserCvRepository userCvRepository,
+            FileService fileService) {
         this.resumeRepository = resumeRepository;
         this.userRepository = userRepository;
         this.jobRepository = jobRepository;
         this.emailService = emailService;
+        this.userCvRepository = userCvRepository;
+        this.fileService = fileService;
     }
 
     public Optional<Resume> fetchById(long id) {
@@ -78,6 +92,58 @@ public class ResumeService {
         return res;
     }
 
+    @Transactional
+    public ResCreateResumeDTO handleApplyJob(long jobId, Long userCvId, MultipartFile file) throws Exception {
+        String email = SecurityUtil.getCurrentUserLogin().orElse("");
+        User user = this.userRepository.findByEmail(email);
+        if (user == null) {
+            throw new RuntimeException("User not found");
+        }
+
+        Optional<Job> jobOptional = this.jobRepository.findById(jobId);
+        if (jobOptional.isEmpty()) {
+            throw new RuntimeException("Job not found");
+        }
+        Job job = jobOptional.get();
+
+        String resumeUrl = null;
+
+        // Option A: Dùng CV có sẵn
+        if (userCvId != null) {
+            Optional<UserCv> cvOptional = this.userCvRepository.findById(userCvId);
+            if (cvOptional.isPresent() && cvOptional.get().getUser().getId() == user.getId()) {
+                resumeUrl = cvOptional.get().getUrl();
+            } else {
+                throw new RuntimeException("CV not found or does not belong to you");
+            }
+        } 
+        // Option B: Upload CV mới
+        else if (file != null && !file.isEmpty()) {
+            String folder = "resume";
+            this.fileService.createDirectory(baseURI + folder);
+            resumeUrl = this.fileService.store(file, folder);
+
+            // Tùy chọn: Lưu luôn vào Profile Candidate cho lần sau
+            UserCv userCv = new UserCv();
+            userCv.setFileName(file.getOriginalFilename());
+            userCv.setUrl(resumeUrl);
+            userCv.setDefault(false);
+            userCv.setUser(user);
+            this.userCvRepository.save(userCv);
+        } else {
+            throw new RuntimeException("Bạn cần chọn CV đã lưu hoặc upload CV mới!");
+        }
+
+        Resume resume = new Resume();
+        resume.setEmail(user.getEmail());
+        resume.setUser(user);
+        resume.setJob(job);
+        resume.setUrl(resumeUrl);
+        resume.setStatus(ResumeStateEnum.PENDING);
+
+        return create(resume);
+    }
+
     public ResUpdateResumeDTO update(Resume resume) {
         resume = this.resumeRepository.save(resume);
         ResUpdateResumeDTO res = new ResUpdateResumeDTO();
@@ -91,7 +157,7 @@ public class ResumeService {
     }
 
     /**
-     * ✅ Hàm ánh xạ đầy đủ Resume → ResFetchResumeDTO
+     *  Ánh xạ đầy đủ Resume → ResFetchResumeDTO
      */
     public ResFetchResumeDTO getResume(Resume resume) {
         ResFetchResumeDTO res = new ResFetchResumeDTO();
@@ -197,14 +263,19 @@ public class ResumeService {
 
         // Send email
         if (resume.getUser() != null && resume.getEmail() != null) {
-            this.emailService.sendEmailAsync(
-                    resume.getEmail(),
-                    "Cập nhật trạng thái hồ sơ - JobHunter",
-                    "Chào " + resume.getUser().getName() + ",\n\n" +
-                            "Trạng thái hồ sơ của bạn cho công việc " + resume.getJob().getName()
-                            + " đã được cập nhật thành: " + newStatus + ".\n" +
-                            (note != null ? "Ghi chú: " + note + "\n" : "") +
-                            "\nTrân trọng,\nĐội ngũ JobHunter");
+            if (newStatus == ResumeStateEnum.APPROVED || newStatus == ResumeStateEnum.REJECTED) {
+                String companyName = (resume.getJob() != null && resume.getJob().getCompany() != null)
+                        ? resume.getJob().getCompany().getName()
+                        : "Công ty đối tác";
+                this.emailService.sendResumeStatusUpdateEmail(
+                        resume.getEmail(),
+                        resume.getUser().getName(),
+                        resume.getJob().getName(),
+                        companyName,
+                        newStatus.name(),
+                        note
+                );
+            }
         }
 
         ResUpdateResumeDTO res = new ResUpdateResumeDTO();

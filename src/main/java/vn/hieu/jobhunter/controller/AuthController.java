@@ -508,7 +508,10 @@ public class AuthController {
                     currentUserDB.getCompany() != null
                             ? new ResLoginDTO.CompanyUser(currentUserDB.getCompany().getId(),
                                     currentUserDB.getCompany().getName())
-                            : null);
+                            : null,
+                    currentUserDB.getAddress(),
+                    currentUserDB.getAge(),
+                    currentUserDB.getGender());
             userGetAccount.setUser(userLogin);
         }
 
@@ -574,7 +577,10 @@ public class AuthController {
                 user.getRole(),
                 user.getCompany() != null
                         ? new ResLoginDTO.CompanyUser(user.getCompany().getId(), user.getCompany().getName())
-                        : null);
+                        : null,
+                user.getAddress(),
+                user.getAge(),
+                user.getGender());
         res.setUser(userLogin);
 
         // FIX LỖI: Gọi đúng tên hàm createAccessToken
