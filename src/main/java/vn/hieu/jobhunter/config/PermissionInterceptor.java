@@ -15,6 +15,9 @@ import vn.hieu.jobhunter.domain.User;
 import vn.hieu.jobhunter.service.UserService;
 import vn.hieu.jobhunter.util.SecurityUtil;
 import vn.hieu.jobhunter.util.error.PermissionException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
 public class PermissionInterceptor implements HandlerInterceptor {
 
@@ -37,12 +40,23 @@ public class PermissionInterceptor implements HandlerInterceptor {
         System.out.println("URI: " + requestURI);
 
         // check permission
-        String email = SecurityUtil.getCurrentUserLogin().isPresent() == true
-                ? SecurityUtil.getCurrentUserLogin().get()
-                : "";
+        String email = SecurityUtil.getCurrentUserLogin().orElse("");
+
         if (email != null && !email.isEmpty()) {
             User user = this.userService.handleGetUserByUsername(email);
             if (user != null) {
+                // 1. Check if token was issued before password change
+                Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+                if (auth instanceof org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken jwtAuth) {
+                    java.time.Instant iat = jwtAuth.getToken().getIssuedAt();
+                    if (iat != null && user.getPasswordLastChangedAt() != null) {
+                        if (iat.isBefore(user.getPasswordLastChangedAt().truncatedTo(java.time.temporal.ChronoUnit.SECONDS))) {
+                            throw new PermissionException("Token has been invalidated because the password was changed.");
+                        }
+                    }
+                }
+
+                // 2. Check path authorization
                 Role role = user.getRole();
                 if (role != null) {
                     List<Permission> permissions = role.getPermissions();

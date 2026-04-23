@@ -10,7 +10,12 @@ version = "0.0.1-SNAPSHOT"
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(21))
+    }
 }
+
 
 repositories {
     mavenCentral()
@@ -47,7 +52,6 @@ dependencies {
 	testImplementation("org.springframework.security:spring-security-test")
 }
 
-
-tasks.withType<Test> {
-    useJUnitPlatform()
+tasks.withType<JavaCompile> {
+    options.encoding = "UTF-8"
 }

@@ -18,10 +18,9 @@ import jakarta.validation.Valid;
 import vn.hieu.jobhunter.domain.User;
 import vn.hieu.jobhunter.domain.request.GoogleLoginRequest;
 import vn.hieu.jobhunter.domain.request.ReqLoginDTO;
+import vn.hieu.jobhunter.domain.request.ChangePasswordRequestDTO;
 import vn.hieu.jobhunter.domain.response.ResCreateUserDTO;
 import vn.hieu.jobhunter.domain.response.ResLoginDTO;
-import vn.hieu.jobhunter.domain.response.ResUpdateUserDTO;
-import vn.hieu.jobhunter.domain.response.ChangePasswordRequest.ChangePasswordRequest;
 import vn.hieu.jobhunter.service.GoogleAuthService;
 import vn.hieu.jobhunter.service.UserService;
 import vn.hieu.jobhunter.util.SecurityUtil;
@@ -200,34 +199,12 @@ public class AuthController {
     }
 
     // =================== CHANGE PASSWORD ===================
-    @PutMapping("/auth/change-password")
-    @ApiMessage("Change user password")
-    public ResponseEntity<ResUpdateUserDTO> changePassword(
-            @RequestBody ChangePasswordRequest req) throws IdInvalidException {
-
-        String email = SecurityUtil.getCurrentUserLogin().orElse("");
-
-        if (email.isEmpty()) {
-            throw new IdInvalidException("Invalid or expired access token");
-        }
-
-        User user = this.userService.handleGetUserByUsername(email);
-        if (user == null) {
-            throw new IdInvalidException("User not found");
-        }
-
-        if (!passwordEncoder.matches(req.getOldPassword(), user.getPassword())) {
-            throw new IdInvalidException("Incorrect current password");
-        }
-
-        if (req.getOldPassword().equals(req.getNewPassword())) {
-            throw new IdInvalidException("New password cannot be the same as the old password");
-        }
-
-        user.setPassword(passwordEncoder.encode(req.getNewPassword()));
-        user = this.userService.handleUpdateUser(user);
-
-        return ResponseEntity.ok(this.userService.convertToResUpdateUserDTO(user));
+    @PostMapping("/auth/change-password")
+    @ApiMessage("Change password")
+    public ResponseEntity<Void> changePassword(
+            @Valid @RequestBody ChangePasswordRequestDTO dto) throws IdInvalidException {
+        this.userService.handleChangePassword(dto);
+        return ResponseEntity.ok().build();
     }
 
     // =================== PRIVATE HELPER (FIX LỖI GỌI HÀM) ===================

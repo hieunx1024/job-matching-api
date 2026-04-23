@@ -1,5 +1,6 @@
 package vn.hieu.jobhunter.service;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,7 +23,9 @@ import vn.hieu.jobhunter.domain.response.ResCreateUserDTO;
 import vn.hieu.jobhunter.domain.response.ResUpdateUserDTO;
 import vn.hieu.jobhunter.domain.response.ResUserDTO;
 import vn.hieu.jobhunter.domain.response.ResultPaginationDTO;
+import vn.hieu.jobhunter.domain.request.ChangePasswordRequestDTO;
 import vn.hieu.jobhunter.repository.UserRepository;
+import vn.hieu.jobhunter.util.SecurityUtil;
 import vn.hieu.jobhunter.util.error.IdInvalidException;
 
 @Service
@@ -367,5 +370,39 @@ public class UserService {
 
         currentUser.setRole(role);
         return this.userRepository.save(currentUser);
+    }
+
+    // =================== CHANGE PASSWORD ===================
+    public void handleChangePassword(ChangePasswordRequestDTO dto) throws IdInvalidException {
+        String email = SecurityUtil.getCurrentUserLogin().orElse("");
+        if (email.isEmpty()) {
+            throw new IdInvalidException("Access token is invalid or expired");
+        }
+
+        User currentUser = this.handleGetUserByUsername(email);
+        if (currentUser == null) {
+            throw new IdInvalidException("User does not exist");
+        }
+
+        // 1. Check if current password matches
+        if (!this.passwordEncoder.matches(dto.getCurrentPassword(), currentUser.getPassword())) {
+            throw new IdInvalidException("Current password is incorrect");
+        }
+
+        // 2. Check if new password matches confirm password
+        if (!dto.getNewPassword().equals(dto.getConfirmPassword())) {
+            throw new IdInvalidException("New password and confirm password do not match");
+        }
+
+        // 3. Optional: Check if new password is same as old password
+        if (this.passwordEncoder.matches(dto.getNewPassword(), currentUser.getPassword())) {
+            throw new IdInvalidException("New password cannot be the same as the old password");
+        }
+
+        // 4. Update password and security metadata
+        currentUser.setPassword(this.passwordEncoder.encode(dto.getNewPassword()));
+        currentUser.setPasswordLastChangedAt(Instant.now());
+        currentUser.setRefreshToken(null); // Invalidate refresh token
+        this.userRepository.save(currentUser);
     }
 }
