@@ -90,6 +90,8 @@ public class CompanyRegistrationService {
                 company.setDescription(reg.getDescription());
                 company.setAddress(reg.getAddress());
                 company.setLogo(reg.getLogo());
+                company.setFacebookLink(reg.getFacebookLink());
+                company.setGithubLink(reg.getGithubLink());
                 company.setCreatedBy(reg.getCreatedBy());
                 company.setCreatedAt(Instant.now());
 

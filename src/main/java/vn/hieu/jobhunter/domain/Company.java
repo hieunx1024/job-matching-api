@@ -36,6 +36,8 @@ public class Company {
     private String address;
 
     private String logo;
+    private String facebookLink;
+    private String githubLink;
 
     private boolean isVerified = false; // Công ty đã được admin xác thực chưa
 
