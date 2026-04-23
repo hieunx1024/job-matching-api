@@ -221,6 +221,7 @@ public class UserController {
                 .secure(true)
                 .path("/")
                 .maxAge(refreshTokenExpiration)
+                .sameSite("None")
                 .build();
 
         return ResponseEntity.ok()

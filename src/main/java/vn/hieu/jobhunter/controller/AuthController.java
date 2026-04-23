@@ -483,6 +483,7 @@ public class AuthController {
                 .secure(true)
                 .path("/")
                 .maxAge(0)
+                .sameSite("None")
                 .build();
 
         return ResponseEntity.ok()
@@ -599,6 +600,7 @@ public class AuthController {
                 .secure(true)
                 .path("/")
                 .maxAge(refreshTokenExpiration)
+                .sameSite("None")
                 .build();
 
         return ResponseEntity.ok()
