@@ -12,7 +12,7 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-// Đảm bảo dùng đúng gói này
+// Use appropriate Google API package
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 
 import vn.hieu.jobhunter.domain.Company;
@@ -66,7 +66,7 @@ public class UserService {
     public User handleRegister(vn.hieu.jobhunter.domain.request.ReqRegisterDTO dto) throws IdInvalidException {
         // Validate Role (only CANDIDATE or RECRUITER allowed)
         if (!dto.getRole().equalsIgnoreCase("CANDIDATE") && !dto.getRole().equalsIgnoreCase("RECRUITER")) {
-            throw new IdInvalidException("Vai trò không hợp lệ. Chỉ chấp nhận CANDIDATE hoặc RECRUITER.");
+            throw new IdInvalidException("Invalid role. Only CANDIDATE or RECRUITER are allowed.");
         }
 
         Role role = this.roleService.fetchByName(dto.getRole());
@@ -78,7 +78,7 @@ public class UserService {
         }
 
         if (role == null) {
-            throw new IdInvalidException("Vai trò không tồn tại trong hệ thống: " + dto.getRole());
+            throw new IdInvalidException("Role does not exist: " + dto.getRole());
         }
 
         User user = new User();
@@ -288,8 +288,7 @@ public class UserService {
             user.setProvider("GOOGLE");
 
             // 👇 THÊM DÒNG NÀY ĐỂ SỬA LỖI 👇
-            // Tạo một mật khẩu ngẫu nhiên hoặc cố định rồi mã hóa nó
-            // Người dùng Google sẽ không bao giờ dùng mật khẩu này để đăng nhập
+            // Set dummy password for Google users; they never use this to login
             user.setPassword(passwordEncoder.encode("GOOGLE_LOGIN_DUMMY_PASSWORD_123"));
 
             // Set Role mặc định (nếu cần)
@@ -313,10 +312,10 @@ public class UserService {
     }
 
     public void sendVerificationEmail(User user, String token) {
-        String subject = "Xác nhận tài khoản JobHunter";
+        String subject = "Account Verification - JobHunter";
         String verificationUrl = "http://localhost:8080/api/v1/auth/verify?token=" + token;
-        String message = "Chào " + user.getName() + ",\n\n" +
-                "Vui lòng nhấn vào link sau để xác nhận tài khoản:\n" + verificationUrl;
+        String message = "Hello " + user.getName() + ",\n\n" +
+                "Please click the link below to verify your account:\n" + verificationUrl;
 
         SimpleMailMessage mailMessage = new SimpleMailMessage();
         mailMessage.setTo(user.getEmail());

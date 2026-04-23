@@ -35,7 +35,7 @@ public class CompanyRegistrationService {
     }
 
     /**
-     * 📌 Tạo yêu cầu đăng ký công ty mới (trạng thái mặc định: PENDING)
+     * Create a new company registration request with default PENDING status.
      */
     public CompanyRegistration handleCreateRegistration(CompanyRegistration registration) {
         registration.setStatus(RegistrationStatus.PENDING);
@@ -44,7 +44,7 @@ public class CompanyRegistrationService {
     }
 
     /**
-     * 📌 Lấy danh sách tất cả yêu cầu (có phân trang và lọc bằng Specification)
+     * Get paginated and filtered registration requests.
      */
     public ResultPaginationDTO handleGetRegistrations(Specification<CompanyRegistration> spec, Pageable pageable) {
         Page<CompanyRegistration> pageReg = registrationRepository.findAll(spec, pageable);
@@ -63,7 +63,7 @@ public class CompanyRegistrationService {
     }
 
     /**
-     * 📌 Lấy danh sách yêu cầu đăng ký của 1 user cụ thể
+     * Fetch registrations created by a specific user.
      */
     public ResultPaginationDTO fetchRegistrationsByUser(String username, Pageable pageable) {
         Specification<CompanyRegistration> spec = (root, query, cb) -> cb.equal(root.get("createdBy"), username);
@@ -71,8 +71,7 @@ public class CompanyRegistrationService {
     }
 
     /**
-     * 📌 Cập nhật trạng thái của yêu cầu đăng ký công ty.
-     * Nếu APPROVED → tự động tạo bản ghi trong bảng Company.
+     * Update registration status. Automatically creates a Company record if APPROVED.
      */
     public CompanyRegistration handleUpdateStatus(Long id, RegistrationStatus status, String rejectionReason) {
         Optional<CompanyRegistration> registrationOptional = registrationRepository.findById(id);
@@ -83,7 +82,7 @@ public class CompanyRegistrationService {
             reg.setRejectionReason(status == RegistrationStatus.REJECTED ? rejectionReason : null);
             reg.setUpdatedAt(Instant.now());
 
-            // ✅ Nếu admin phê duyệt → tạo mới công ty từ thông tin đăng ký
+            // Create new company from registration data if approved
             if (status == RegistrationStatus.APPROVED) {
                 Company company = new Company();
                 company.setName(reg.getCompanyName());
@@ -95,16 +94,16 @@ public class CompanyRegistrationService {
                 company.setCreatedBy(reg.getCreatedBy());
                 company.setCreatedAt(Instant.now());
 
-                // 💾 Lưu công ty vào DB trước để có ID
+                // Save company to generate ID
                 Company savedCompany = companyRepository.save(company);
 
-                // ✅ Gán công ty mới cho user gửi yêu cầu
+                // Assign new company to the requesting user
                 if (reg.getUser() != null && reg.getUser().getId() > 0) {
                     Long userId = reg.getUser().getId();
                     Optional<User> userOpt = userRepository.findById(userId);
                     if (userOpt.isPresent()) {
                         User user = userOpt.get();
-                        user.setCompany(savedCompany); // gán company_id vừa tạo
+                        user.setCompany(savedCompany); // assign generated company_id
                         userRepository.save(user);
                     }
                 }
@@ -117,21 +116,21 @@ public class CompanyRegistrationService {
     }
 
     /**
-     * 📌 Xóa yêu cầu đăng ký công ty
+     * Delete a registration request by ID.
      */
     public void handleDeleteRegistration(Long id) {
         registrationRepository.deleteById(id);
     }
 
     /**
-     * 📌 Lấy chi tiết một yêu cầu theo ID
+     * Find a single registration by ID.
      */
     public Optional<CompanyRegistration> findById(Long id) {
         return registrationRepository.findById(id);
     }
 
     /**
-     * 📌 Lấy tất cả yêu cầu theo trạng thái (PENDING, APPROVED, REJECTED)
+     * Find all registrations by status.
      */
     public List<CompanyRegistration> findByStatus(RegistrationStatus status) {
         Specification<CompanyRegistration> spec = (root, query, cb) -> cb.equal(root.get("status"), status);

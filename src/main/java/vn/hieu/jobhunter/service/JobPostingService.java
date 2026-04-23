@@ -30,15 +30,14 @@ public class JobPostingService {
     }
 
     /**
-     * Logic: Kiểm tra quyền đăng tin của HR
-     * Trả về true nếu thành công và trừ lượt/credit
-     * Ném Exception nếu không đủ điều kiện
+     * Validate HR job posting permissions.
+     * Consumes one post credit if allowed; throws an exception otherwise.
      */
     @Transactional
     public void validateAndConsumeJobPost(String email) throws IdInvalidException, PostLimitExceededException {
         User user = this.userRepository.findByEmail(email);
         if (user == null) {
-            throw new IdInvalidException("User không tồn tại.");
+            throw new IdInvalidException("User not found");
         }
 
         // Logic 0: Free Tier (Max 2 posts per company)
@@ -50,8 +49,8 @@ public class JobPostingService {
             }
         }
 
-        // Logic 1: Kiểm tra Gói đăng ký (Subscription)
-        // Lấy gói đăng ký đầu tiên còn hiệu lực và còn hạn sử dụng
+        // Subscription check
+        // Fetch the first active subscription that hasn't expired
         Optional<UserSubscription> activeSub = this.userSubscriptionRepository
                 .findFirstByUserAndActiveTrueAndEndDateAfterOrderByEndDateAsc(user, Instant.now());
 
@@ -72,15 +71,15 @@ public class JobPostingService {
             }
         }
 
-        // Logic 2: Kiểm tra Pay-per-post Credit
+        // Pay-per-post Credit check
         if (user.getJobPostingCredits() > 0) {
             user.setJobPostingCredits(user.getJobPostingCredits() - 1);
             this.userRepository.save(user); // Lưu user đã cập nhật
             return;
         }
 
-        // Nếu không thỏa mãn cả 2 -> Throw exception
+        // If no criteria met, throw exception
         throw new PostLimitExceededException(
-                "Bạn đã hết lượt đăng tin miễn phí (2/2). Vui lòng nâng cấp gói dịch vụ để tiếp tục.");
+                "Free post limit reached (2/2). Please upgrade your plan to continue.");
     }
 }

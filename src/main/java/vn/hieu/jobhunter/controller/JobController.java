@@ -181,14 +181,14 @@ public class JobController {
         User user = userService.handleGetUserByUsername(username);
 
         if (user == null) {
-            throw new IdInvalidException("User không tồn tại.");
+            throw new IdInvalidException("User not found");
         }
 
         Map<String, Object> stats = new HashMap<>();
 
         long usedPosts = 0;
         long remainingPosts = 0;
-        String packageName = "Free (Miễn phí)";
+        String packageName = "Free";
 
         // Count current jobs by company
         if (user.getCompany() != null) {

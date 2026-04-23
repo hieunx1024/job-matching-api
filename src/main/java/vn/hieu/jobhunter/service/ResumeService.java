@@ -108,7 +108,7 @@ public class ResumeService {
 
         String resumeUrl = null;
 
-        // Option A: Dùng CV có sẵn
+        // Option A: Use existing CV
         if (userCvId != null) {
             Optional<UserCv> cvOptional = this.userCvRepository.findById(userCvId);
             if (cvOptional.isPresent() && cvOptional.get().getUser().getId() == user.getId()) {
@@ -117,13 +117,13 @@ public class ResumeService {
                 throw new RuntimeException("CV not found or does not belong to you");
             }
         } 
-        // Option B: Upload CV mới
+        // Option B: Upload new CV
         else if (file != null && !file.isEmpty()) {
             String folder = "resume";
             this.fileService.createDirectory(baseURI + folder);
             resumeUrl = this.fileService.store(file, folder);
 
-            // Tùy chọn: Lưu luôn vào Profile Candidate cho lần sau
+            // Optional: Save to Candidate Profile for future use
             UserCv userCv = new UserCv();
             userCv.setFileName(file.getOriginalFilename());
             userCv.setUrl(resumeUrl);
@@ -131,7 +131,7 @@ public class ResumeService {
             userCv.setUser(user);
             this.userCvRepository.save(userCv);
         } else {
-            throw new RuntimeException("Bạn cần chọn CV đã lưu hoặc upload CV mới!");
+            throw new RuntimeException("You must select a saved CV or upload a new one.");
         }
 
         Resume resume = new Resume();
@@ -157,7 +157,7 @@ public class ResumeService {
     }
 
     /**
-     *  Ánh xạ đầy đủ Resume → ResFetchResumeDTO
+     * Map Resume entity to ResFetchResumeDTO.
      */
     public ResFetchResumeDTO getResume(Resume resume) {
         ResFetchResumeDTO res = new ResFetchResumeDTO();
@@ -243,17 +243,17 @@ public class ResumeService {
     public ResUpdateResumeDTO updateStatus(long resumeId, ResumeStateEnum newStatus, String note) {
         Optional<Resume> optionalResume = this.resumeRepository.findById(resumeId);
         if (optionalResume.isEmpty()) {
-            throw new RuntimeException("Không tìm thấy hồ sơ có id = " + resumeId);
+            throw new RuntimeException("Resume not found with id = " + resumeId);
         }
 
         Resume resume = optionalResume.get();
 
         if (newStatus == ResumeStateEnum.APPROVED) {
             resume.setStatus(newStatus);
-            resume.setNote(note != null && !note.isBlank() ? note : "Đã được chấp nhận. Liên hệ ứng viên qua email.");
+            resume.setNote(note != null && !note.isBlank() ? note : "Accepted. Contact the candidate via email.");
         } else if (newStatus == ResumeStateEnum.REJECTED) {
             resume.setStatus(newStatus);
-            resume.setNote(note != null && !note.isBlank() ? note : "Không đạt yêu cầu.");
+            resume.setNote(note != null && !note.isBlank() ? note : "Does not meet requirements.");
         } else {
             resume.setStatus(newStatus);
             resume.setNote(note);
@@ -266,7 +266,7 @@ public class ResumeService {
             if (newStatus == ResumeStateEnum.APPROVED || newStatus == ResumeStateEnum.REJECTED) {
                 String companyName = (resume.getJob() != null && resume.getJob().getCompany() != null)
                         ? resume.getJob().getCompany().getName()
-                        : "Công ty đối tác";
+                        : "Partner Company";
                 this.emailService.sendResumeStatusUpdateEmail(
                         resume.getEmail(),
                         resume.getUser().getName(),

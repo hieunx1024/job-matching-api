@@ -38,7 +38,7 @@ public class ChatbotService {
             String aiResponse = chatClient.prompt()
                     .system(systemPrompt)
                     .user(request.getMessage())
-                    .functions("searchJobs") // calls the Bean 'searchJobs' auto magic
+                    .functions("searchJobs") // trigger searchJobs tool via Spring AI Bean
                     .call()
                     .content();
 
@@ -51,7 +51,7 @@ public class ChatbotService {
         } catch (Exception e) {
             log.error("Error calling AI", e);
             return ChatResponse.builder()
-                    .reply("Xin lỗi, hệ thống AI hiện đang bận hoặc cấu hình API Key chưa chuẩn. Vui lòng thử lại sau giây lát!")
+                    .reply("Sorry, the AI system is currently busy or the API Key configuration is invalid. Please try again later.")
                     .build();
         } finally {
             JobSearchContext.clear();

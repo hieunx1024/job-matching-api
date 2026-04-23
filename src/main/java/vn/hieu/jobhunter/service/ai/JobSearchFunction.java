@@ -27,7 +27,7 @@ public class JobSearchFunction {
     }
 
     @Bean
-    @Description("Tìm kiếm các công việc có sẵn trong hệ thống dựa trên địa điểm, kỹ năng (hoặc tên công việc), mức lương tối thiểu, và cấp bậc (INTERN, FRESHER, JUNIOR, MIDDLE, SENIOR)")
+    @Description("Search for available jobs based on location, skill (or job title), minimum salary, and level (INTERN, FRESHER, JUNIOR, MIDDLE, SENIOR)")
     public Function<JobSearchRequest, List<ChatResponse.JobLink>> searchJobs() {
         return request -> {
             System.out.println("AI called searchJobs with: " + request);
@@ -51,7 +51,7 @@ public class JobSearchFunction {
             List<ChatResponse.JobLink> result = jobPage.getContent().stream().map(job -> ChatResponse.JobLink.builder()
                     .id(job.getId())
                     .title(job.getName())
-                    .company(job.getCompany() != null ? job.getCompany().getName() : "Công ty ẩn danh")
+                    .company(job.getCompany() != null ? job.getCompany().getName() : "Anonymous Company")
                     .url("http://localhost:5173/jobs/" + job.getId())
                     .build()).collect(Collectors.toList());
 

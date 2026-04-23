@@ -38,14 +38,14 @@ public class CompanyRegistrationController {
     }
 
     /**
-     * 👤 Người dùng gửi yêu cầu đăng ký công ty mới
+     * User submits a new company registration request.
      */
     @PostMapping
     @ApiMessage("Create new company registration request")
     public ResponseEntity<CompanyRegistration> createRegistration(
             @Valid @RequestBody CompanyRegistration reqRegistration) {
 
-        // Gán user đang đăng nhập cho yêu cầu
+        // Assign current user to request
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
         User currentUser = userService.handleGetUserByUsername(username);
@@ -56,9 +56,9 @@ public class CompanyRegistrationController {
     }
 
     /**
-     * 🔍 Lấy danh sách yêu cầu đăng ký công ty (có phân quyền)
-     * - Admin: xem tất cả
-     * - User: chỉ xem của chính mình
+     * Fetch list of company registration requests (permission based).
+     * - Admin: view all
+     * - User: view own requests only
      */
     @GetMapping
     @ApiMessage("Fetch company registration requests with pagination")
@@ -83,10 +83,7 @@ public class CompanyRegistrationController {
     }
 
     /**
-     * ✅ Admin phê duyệt yêu cầu
-     */
-    /**
-     * ⚙️ Admin cập nhật trạng thái yêu cầu đăng ký công ty (phê duyệt hoặc từ chối)
+     * Admin updates registration status (approve or reject).
      */
     @PutMapping("/{id}/status")
     @ApiMessage("Update company registration status (approve or reject)")
@@ -95,7 +92,7 @@ public class CompanyRegistrationController {
             @RequestParam("status") String status,
             @RequestBody(required = false) String rejectionReason) {
 
-        // Chuyển status từ string sang enum
+        // Convert status string to enum
         RegistrationStatus registrationStatus;
         try {
             registrationStatus = RegistrationStatus.valueOf(status.toUpperCase());
@@ -104,15 +101,15 @@ public class CompanyRegistrationController {
                     .body("Invalid status. Must be APPROVED or REJECTED.");
         }
 
-        // Chỉ cập nhật lý do khi bị từ chối
+        // Update reason only when rejected
         String finalReason = null;
         if (registrationStatus == RegistrationStatus.REJECTED) {
             finalReason = (rejectionReason != null && !rejectionReason.trim().isEmpty())
                     ? rejectionReason.trim()
-                    : "Không có lý do cụ thể.";
+                    : "No specific reason provided.";
         }
 
-        // Cập nhật trạng thái đăng ký
+        // Update registration status
         CompanyRegistration updated = registrationService.handleUpdateStatus(id, registrationStatus, finalReason);
         if (updated == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -124,7 +121,7 @@ public class CompanyRegistrationController {
     }
 
     /**
-     * 🔎 Lấy chi tiết một yêu cầu theo ID
+     * Fetch registration detail by ID.
      */
     @GetMapping("/{id}")
     @ApiMessage("Fetch company registration detail")
@@ -137,7 +134,7 @@ public class CompanyRegistrationController {
     }
 
     /**
-     * 🗑️ Xóa yêu cầu đăng ký công ty (nếu cần)
+     * Delete company registration request.
      */
     @DeleteMapping("/{id}")
     @ApiMessage("Delete company registration request")

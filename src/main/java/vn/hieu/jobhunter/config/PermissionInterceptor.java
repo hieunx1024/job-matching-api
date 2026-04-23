@@ -31,10 +31,10 @@ public class PermissionInterceptor implements HandlerInterceptor {
         String path = (String) request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
         String requestURI = request.getRequestURI();
         String httpMethod = request.getMethod();
-        System.out.println(">>> RUN preHandle");
-        System.out.println(">>> path= " + path);
-        System.out.println(">>> httpMethod= " + httpMethod);
-        System.out.println(">>> requestURI= " + requestURI);
+        System.out.println("Processing preHandle");
+        System.out.println("Path: " + path);
+        System.out.println("Method: " + httpMethod);
+        System.out.println("URI: " + requestURI);
 
         // check permission
         String email = SecurityUtil.getCurrentUserLogin().isPresent() == true
@@ -50,10 +50,10 @@ public class PermissionInterceptor implements HandlerInterceptor {
                             && item.getMethod().equals(httpMethod));
 
                     if (isAllow == false) {
-                        throw new PermissionException("Bạn không có quyền truy cập endpoint này...");
+                        throw new PermissionException("You do not have permission to access this endpoint.");
                     }
                 } else {
-                    throw new PermissionException(" không có quyền truy cập endpoint này.");
+                    throw new PermissionException("No role assigned. Access denied.");
                 }
             }
         }
