@@ -59,18 +59,8 @@ public class FileService {
             String originalName = file.getOriginalFilename();
             boolean isPdf = originalName != null && originalName.toLowerCase().endsWith(".pdf");
 
-            // FIX: Dùng "raw" cho PDF thay vì "image" để tránh lỗi 401
-            String resourceType = isPdf ? "raw" : "auto";
-
-            // FIX: Tạo public_id KHÔNG có đuôi .pdf (Cloudinary tự append)
-            String publicId = null;
-            if (originalName != null) {
-                String nameWithoutExt = isPdf
-                        ? originalName.substring(0, originalName.length() - 4)
-                        : originalName;
-                publicId = nameWithoutExt + "_" + System.currentTimeMillis();
-                // Không thêm ".pdf" ở đây — Cloudinary sẽ tự thêm
-            }
+            // Dùng "image" cho PDF để browser hiển thị inline được
+            String resourceType = isPdf ? "image" : "auto";
 
             Map<String, Object> params = new HashMap<>();
             params.put("folder", "jobhunter/" + folder);
@@ -80,8 +70,13 @@ public class FileService {
             params.put("use_filename", true);
             params.put("unique_filename", true);
 
-            if (publicId != null) {
+            if (isPdf && originalName != null) {
+                // FIX: public_id KHÔNG có đuôi .pdf — Cloudinary tự append qua "format"
+                String nameWithoutExt = originalName.substring(0, originalName.length() - 4);
+                String publicId = nameWithoutExt + "_" + System.currentTimeMillis();
                 params.put("public_id", publicId);
+                // Báo cho Cloudinary biết đây là PDF
+                params.put("format", "pdf");
             }
 
             try {
