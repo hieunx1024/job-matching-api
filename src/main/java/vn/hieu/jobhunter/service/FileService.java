@@ -58,7 +58,8 @@ public class FileService {
             String fileName = file.getOriginalFilename();
             String resourceType = "auto";
             if (fileName != null && fileName.toLowerCase().endsWith(".pdf")) {
-                resourceType = "raw";
+                // Use "image" for PDFs to get proper PDF rendering in browsers
+                resourceType = "image";
             }
 
             Map<String, Object> params = new HashMap<>();
