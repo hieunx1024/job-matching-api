@@ -5,7 +5,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -18,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.cloudinary.Cloudinary;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -54,12 +54,22 @@ public class FileService {
 
     public String store(MultipartFile file, String folder) throws IOException {
         System.out.println(">>> FILE SERVICE: Current storage type = " + storageType);
+
         if ("CLOUDINARY".equalsIgnoreCase(storageType)) {
-            String fileName = file.getOriginalFilename();
-            String resourceType = "auto";
-            if (fileName != null && fileName.toLowerCase().endsWith(".pdf")) {
-                // Use "image" for PDFs to get proper PDF rendering in browsers
-                resourceType = "image";
+            String originalName = file.getOriginalFilename();
+            boolean isPdf = originalName != null && originalName.toLowerCase().endsWith(".pdf");
+
+            // FIX: Dùng "raw" cho PDF thay vì "image" để tránh lỗi 401
+            String resourceType = isPdf ? "raw" : "auto";
+
+            // FIX: Tạo public_id KHÔNG có đuôi .pdf (Cloudinary tự append)
+            String publicId = null;
+            if (originalName != null) {
+                String nameWithoutExt = isPdf
+                        ? originalName.substring(0, originalName.length() - 4)
+                        : originalName;
+                publicId = nameWithoutExt + "_" + System.currentTimeMillis();
+                // Không thêm ".pdf" ở đây — Cloudinary sẽ tự thêm
             }
 
             Map<String, Object> params = new HashMap<>();
@@ -69,12 +79,8 @@ public class FileService {
             params.put("access_mode", "public");
             params.put("use_filename", true);
             params.put("unique_filename", true);
-            
-            // Explicitly set public_id with extension for better browser recognition
-            String originalName = file.getOriginalFilename();
-            if (originalName != null && originalName.toLowerCase().endsWith(".pdf")) {
-                // Ensure the public_id ends with .pdf
-                String publicId = originalName.substring(0, originalName.length() - 4) + "_" + System.currentTimeMillis() + ".pdf";
+
+            if (publicId != null) {
                 params.put("public_id", publicId);
             }
 
@@ -86,6 +92,7 @@ public class FileService {
                 System.err.println(">>> FAILED TO UPLOAD TO CLOUDINARY: " + e.getMessage());
                 throw e;
             }
+
         } else {
             // LOCAL STORAGE
             String finalName = System.currentTimeMillis() + "-" + file.getOriginalFilename();
@@ -102,8 +109,9 @@ public class FileService {
     }
 
     public long getFileLength(String fileName, String folder) {
-        if (fileName != null && fileName.startsWith("http")) return 1;
-        
+        if (fileName != null && fileName.startsWith("http"))
+            return 1;
+
         try {
             Path path = getBasePath(folder).resolve(fileName);
             File file = path.toFile();
