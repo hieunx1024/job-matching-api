@@ -17,78 +17,92 @@ import org.springframework.core.io.InputStreamResource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.cloudinary.Cloudinary;
+import java.util.HashMap;
+import java.util.Map;
+
 @Service
 public class FileService {
 
     @Value("${jobhunter.upload-file.base-uri}")
     private String baseURI;
 
-    private Path getBasePath(String folder) {
-        String safeBaseURI = baseURI;
-        if (safeBaseURI.startsWith("file://")) {
-            safeBaseURI = safeBaseURI.substring(7);
-        }
-        return Paths.get(safeBaseURI, folder);
+    @Value("${jobhunter.storage.type}")
+    private String storageType;
+
+    private final Cloudinary cloudinary;
+
+    public FileService(Cloudinary cloudinary) {
+        this.cloudinary = cloudinary;
     }
 
     public void createDirectory(String folder) throws URISyntaxException {
-        // Log logic kept for compatibility
-        try {
-            // Check if folder is full URI or relative
-            Path p;
-            if (folder.startsWith("file:")) {
-                URI uri = new URI(folder);
-                p = Paths.get(uri);
-            } else {
-                p = Paths.get(folder);
+        if ("LOCAL".equalsIgnoreCase(storageType)) {
+            try {
+                Path p = getBasePath(folder);
+                if (!Files.exists(p)) {
+                    Files.createDirectories(p);
+                    System.out.println(">>> CREATE NEW DIRECTORY SUCCESSFUL, PATH = " + p);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-
-            if (!Files.exists(p)) {
-                Files.createDirectories(p);
-                System.out.println(">>> CREATE NEW DIRECTORY SUCCESSFUL, PATH = " + p);
-            } else {
-                System.out.println(">>> SKIP MAKING DIRECTORY, ALREADY EXISTS: " + p);
-            }
-        } catch (IOException | IllegalArgumentException e) {
-            e.printStackTrace();
+        } else {
+            System.out.println(">>> Cloudinary handles directory mapping for: " + folder);
         }
     }
 
-    public String store(MultipartFile file, String folder) throws URISyntaxException, IOException {
-        String finalName = System.currentTimeMillis() + "-" + file.getOriginalFilename();
+    public String store(MultipartFile file, String folder) throws IOException {
+        if ("CLOUDINARY".equalsIgnoreCase(storageType)) {
+            String fileName = file.getOriginalFilename();
+            String resourceType = "auto";
+            if (fileName != null && fileName.toLowerCase().endsWith(".pdf")) {
+                resourceType = "raw";
+            }
 
-        // Resolve path safely using Path API, avoiding URI string concatenation issues
-        Path rootDir = getBasePath(folder);
-        if (!Files.exists(rootDir)) {
+            Map<String, Object> params = new HashMap<>();
+            params.put("folder", "jobhunter/" + folder);
+            params.put("resource_type", resourceType);
+            params.put("type", "upload");
+            params.put("access_mode", "public");
+            params.put("use_filename", true);
+            params.put("unique_filename", true);
+
             try {
-                Files.createDirectories(rootDir);
-                System.out.println(">>> Created missing directory: " + rootDir);
+                Map uploadResult = cloudinary.uploader().upload(file.getBytes(), params);
+                System.out.println(">>> Cloudinary Upload Result (" + resourceType + "): " + uploadResult);
+                return (String) uploadResult.get("secure_url");
             } catch (IOException e) {
-                System.err.println(">>> FAILED TO CREATE DIRECTORY: " + rootDir);
+                System.err.println(">>> FAILED TO UPLOAD TO CLOUDINARY: " + e.getMessage());
                 throw e;
             }
+        } else {
+            // LOCAL STORAGE
+            String finalName = System.currentTimeMillis() + "-" + file.getOriginalFilename();
+            Path rootDir = getBasePath(folder);
+            if (!Files.exists(rootDir)) {
+                Files.createDirectories(rootDir);
+            }
+            Path destination = rootDir.resolve(finalName);
+            try (InputStream inputStream = file.getInputStream()) {
+                Files.copy(inputStream, destination, StandardCopyOption.REPLACE_EXISTING);
+            }
+            return finalName;
         }
-
-        Path destination = rootDir.resolve(finalName);
-
-        try (InputStream inputStream = file.getInputStream()) {
-            Files.copy(inputStream, destination, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            System.err.println(">>> FAILED TO STORE FILE: " + destination);
-            System.err.println(">>> EXCEPTION: " + e.getClass().getName());
-            System.err.println(">>> MESSAGE: " + e.getMessage());
-            e.printStackTrace();
-            throw e;
-        }
-        return finalName;
     }
 
-    public long getFileLength(String fileName, String folder) throws URISyntaxException {
-        Path path = getBasePath(folder).resolve(fileName);
-        File file = path.toFile();
-        if (!file.exists() || file.isDirectory())
+    public long getFileLength(String fileName, String folder) {
+        if (fileName != null && fileName.startsWith("http")) return 1;
+        
+        try {
+            Path path = getBasePath(folder).resolve(fileName);
+            File file = path.toFile();
+            if (!file.exists() || file.isDirectory())
+                return 0;
+            return file.length();
+        } catch (Exception e) {
             return 0;
-        return file.length();
+        }
     }
 
     public InputStreamResource getResource(String fileName, String folder)
@@ -96,5 +110,13 @@ public class FileService {
         Path path = getBasePath(folder).resolve(fileName);
         File file = path.toFile();
         return new InputStreamResource(new FileInputStream(file));
+    }
+
+    private Path getBasePath(String folder) {
+        String safeBaseURI = baseURI;
+        if (safeBaseURI.startsWith("file://")) {
+            safeBaseURI = safeBaseURI.substring(7);
+        }
+        return Paths.get(safeBaseURI, folder);
     }
 }

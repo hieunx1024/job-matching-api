@@ -69,12 +69,19 @@ public class FileController {
 
     @GetMapping("/files")
     @ApiMessage("Download a file")
-    public ResponseEntity<Resource> download(
+    public ResponseEntity<Object> download(
             @RequestParam(name = "fileName", required = false) String fileName,
             @RequestParam(name = "folder", required = false) String folder)
             throws StorageException, URISyntaxException, FileNotFoundException {
         if (fileName == null || folder == null) {
             throw new StorageException("Missing required params : (fileName or folder) in query params.");
+        }
+
+        // Optimization: If fileName is already a full URL (Cloudinary), redirect to it
+        if (fileName.startsWith("http")) {
+            return ResponseEntity.status(302)
+                    .header(HttpHeaders.LOCATION, fileName)
+                    .build();
         }
 
         // check file exist (and not a directory)
