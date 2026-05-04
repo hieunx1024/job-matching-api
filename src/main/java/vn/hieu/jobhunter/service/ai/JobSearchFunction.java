@@ -18,10 +18,15 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Configuration
-@RequiredArgsConstructor
 public class JobSearchFunction {
 
     private final JobRepository jobRepository;
+    private final String frontendUrl;
+
+    public JobSearchFunction(JobRepository jobRepository, @org.springframework.beans.factory.annotation.Value("${jobhunter.frontend.url}") String frontendUrl) {
+        this.jobRepository = jobRepository;
+        this.frontendUrl = frontendUrl;
+    }
 
     public record JobSearchRequest(String location, String skill, Double minSalary, String level) {
     }
@@ -52,7 +57,7 @@ public class JobSearchFunction {
                     .id(job.getId())
                     .title(job.getName())
                     .company(job.getCompany() != null ? job.getCompany().getName() : "Anonymous Company")
-                    .url("http://localhost:5173/jobs/" + job.getId())
+                    .url(frontendUrl + "/jobs/" + job.getId())
                     .build()).collect(Collectors.toList());
 
             JobSearchContext.setJobs(result);

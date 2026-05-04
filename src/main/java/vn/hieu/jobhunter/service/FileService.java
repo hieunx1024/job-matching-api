@@ -27,7 +27,7 @@ public class FileService {
     @Value("${jobhunter.upload-file.base-uri}")
     private String baseURI;
 
-    @Value("${jobhunter.storage.type}")
+    @Value("${jobhunter.storage.type:CLOUDINARY}")
     private String storageType;
 
     private final Cloudinary cloudinary;
@@ -53,6 +53,7 @@ public class FileService {
     }
 
     public String store(MultipartFile file, String folder) throws IOException {
+        System.out.println(">>> FILE SERVICE: Current storage type = " + storageType);
         if ("CLOUDINARY".equalsIgnoreCase(storageType)) {
             String fileName = file.getOriginalFilename();
             String resourceType = "auto";
@@ -67,6 +68,13 @@ public class FileService {
             params.put("access_mode", "public");
             params.put("use_filename", true);
             params.put("unique_filename", true);
+            
+            // Explicitly set public_id with extension for better browser recognition
+            String originalName = file.getOriginalFilename();
+            if (originalName != null && originalName.toLowerCase().endsWith(".pdf")) {
+                String publicId = originalName.substring(0, originalName.length() - 4) + "_" + System.currentTimeMillis();
+                params.put("public_id", publicId);
+            }
 
             try {
                 Map uploadResult = cloudinary.uploader().upload(file.getBytes(), params);
