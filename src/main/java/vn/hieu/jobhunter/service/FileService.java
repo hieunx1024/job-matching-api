@@ -59,8 +59,7 @@ public class FileService {
             String originalName = file.getOriginalFilename();
             boolean isPdf = originalName != null && originalName.toLowerCase().endsWith(".pdf");
 
-            // Dùng "raw" cho PDF — giữ đúng content-type application/pdf
-            // Dùng "auto" cho các file khác (ảnh, v.v.)
+            // Use "raw" for PDFs to preserve content-type; "auto" for other media types
             String resourceType = isPdf ? "raw" : "auto";
 
             Map<String, Object> params = new HashMap<>();
@@ -72,8 +71,7 @@ public class FileService {
             params.put("unique_filename", true);
 
             if (isPdf && originalName != null) {
-                // Với "raw": Cloudinary KHÔNG tự append .pdf
-                // nên phải thêm .pdf vào public_id thủ công
+                // For "raw" resources, manually append extension to public_id
                 String nameWithoutExt = originalName.substring(0, originalName.length() - 4);
                 String publicId = nameWithoutExt + "_" + System.currentTimeMillis() + ".pdf";
                 params.put("public_id", publicId);

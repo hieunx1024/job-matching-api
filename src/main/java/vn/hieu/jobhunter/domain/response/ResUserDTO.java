@@ -21,6 +21,7 @@ public class ResUserDTO {
     private int age;
     private Instant updatedAt;
     private Instant createdAt;
+    private String status;
 
     private CompanyUser company;
 

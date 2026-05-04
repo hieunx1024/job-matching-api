@@ -12,4 +12,6 @@ public interface PaymentHistoryRepository extends JpaRepository<PaymentHistory, 
 
     @org.springframework.data.jpa.repository.Query("SELECT COALESCE(SUM(p.amount), 0) FROM PaymentHistory p WHERE p.status = :status")
     double sumAmountByStatus(String status);
+
+    java.util.List<PaymentHistory> findTop10ByStatusOrderByPaymentDateDesc(String status);
 }

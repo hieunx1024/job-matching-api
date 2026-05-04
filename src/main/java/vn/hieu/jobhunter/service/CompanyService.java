@@ -69,6 +69,16 @@ public class CompanyService {
         return null;
     }
 
+    public Company updateCompanyStatus(long id, String status) {
+        Optional<Company> companyOptional = this.companyRepository.findById(id);
+        if (companyOptional.isPresent()) {
+            Company currentCompany = companyOptional.get();
+            currentCompany.setStatus(status);
+            return this.companyRepository.save(currentCompany);
+        }
+        return null;
+    }
+
     public void handleDeleteCompany(long id) {
         Optional<Company> comOptional = this.companyRepository.findById(id);
         if (comOptional.isPresent()) {
@@ -113,7 +123,7 @@ public class CompanyService {
         newCompany.setDescription(reqCompany.getDescription());
         newCompany.setAddress(reqCompany.getAddress());
         newCompany.setLogo(reqCompany.getLogo());
-        newCompany.setVerified(false); // Mặc định chưa được xác thực
+        newCompany.setStatus("PENDING"); // Mặc định chờ duyệt
 
         // Lưu công ty
         Company savedCompany = this.companyRepository.save(newCompany);

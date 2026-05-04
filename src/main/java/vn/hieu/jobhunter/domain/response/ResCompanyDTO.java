@@ -16,7 +16,7 @@ public class ResCompanyDTO {
     private String description;
     private String address;
     private String logo;
-    private boolean isVerified;
+    private String status;
     private Instant createdAt;
     private Instant updatedAt;
     private String createdBy;

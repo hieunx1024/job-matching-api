@@ -154,6 +154,21 @@ public class UserController {
         return ResponseEntity.ok(this.userService.convertToResUpdateUserDTO(ericUser));
     }
 
+    @PutMapping("/users/{id}/status")
+    @ApiMessage("Update user status")
+    public ResponseEntity<ResUserDTO> updateUserStatus(@PathVariable("id") long id, @RequestBody java.util.Map<String, String> payload) throws vn.hieu.jobhunter.util.error.PermissionException {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        User currentUser = userService.handleGetUserByUsername(username);
+
+        if (currentUser == null || currentUser.getRole() == null || !"SUPER_ADMIN".equals(currentUser.getRole().getName())) {
+            throw new vn.hieu.jobhunter.util.error.PermissionException("Chỉ Admin mới có quyền đổi trạng thái người dùng.");
+        }
+
+        User updated = userService.updateUserStatus(id, payload.get("status"));
+        return ResponseEntity.ok(this.userService.convertToResUserDTO(updated));
+    }
+
     @PatchMapping("/users/select-role")
     @ApiMessage("Select role for user")
     public ResponseEntity<ResLoginDTO> selectRole(@RequestBody ReqSelectRoleDTO req) throws IdInvalidException {

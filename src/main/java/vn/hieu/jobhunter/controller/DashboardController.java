@@ -48,6 +48,23 @@ public class DashboardController {
         double revenue = paymentHistoryRepository.sumAmountByStatus("SUCCESS");
         dto.setTotalRevenue(revenue);
 
+        dto.setTotalCandidates(userRepository.countByRole_Name("CANDIDATE"));
+        dto.setTotalHRs(userRepository.countByRole_Name("HR"));
+
+        // Fetch recent payments
+        java.util.List<vn.hieu.jobhunter.domain.PaymentHistory> payments = paymentHistoryRepository.findTop10ByStatusOrderByPaymentDateDesc("SUCCESS");
+        java.util.List<ResAdminDashboardDTO.RecentPayment> recentPayments = payments.stream().map(p -> {
+            ResAdminDashboardDTO.RecentPayment rp = new ResAdminDashboardDTO.RecentPayment();
+            rp.setUserName(p.getUser() != null ? p.getUser().getName() : "N/A");
+            rp.setUserEmail(p.getUser() != null ? p.getUser().getEmail() : "N/A");
+            rp.setPlanName(p.getSubscription() != null ? p.getSubscription().getName() : "N/A");
+            rp.setAmount(p.getAmount());
+            rp.setPaymentDate(p.getPaymentDate());
+            rp.setStatus(p.getStatus());
+            return rp;
+        }).collect(java.util.stream.Collectors.toList());
+        dto.setRecentPayments(recentPayments);
+
         return ResponseEntity.ok(dto);
     }
 }

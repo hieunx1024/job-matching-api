@@ -15,14 +15,14 @@ public class JobSpecification {
         return (root, query, cb) -> {
             Predicate predicate = cb.conjunction();
 
-            // Filter by Name (LIKE)
+            // Filter by Name (LIKE case-insensitive)
             if (keyword != null && !keyword.isEmpty()) {
-                predicate = cb.and(predicate, cb.like(root.get("name"), "%" + keyword + "%"));
+                predicate = cb.and(predicate, cb.like(cb.lower(root.get("name")), "%" + keyword.toLowerCase() + "%"));
             }
 
-            // Filter by Location (LIKE)
+            // Filter by Location (LIKE case-insensitive)
             if (location != null && !location.isEmpty()) {
-                predicate = cb.and(predicate, cb.like(root.get("location"), "%" + location + "%"));
+                predicate = cb.and(predicate, cb.like(cb.lower(root.get("location")), "%" + location.toLowerCase() + "%"));
             }
 
             // Filter by Level (Exact)

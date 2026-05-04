@@ -54,7 +54,7 @@ public class User {
     private Instant updatedAt;
     private String createdBy;
     private String updatedBy;
-    private boolean enabled = false; // user đã xác nhận email chưa
+    private String status = "PENDING"; // PENDING (email verification), ACTIVE, LOCKED
     private Instant passwordLastChangedAt;
     private String provider = "LOCAL";
     private String verificationToken; // token xác nhận email

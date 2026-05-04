@@ -39,7 +39,7 @@ public class Company {
     private String facebookLink;
     private String githubLink;
 
-    private boolean isVerified = false; // Công ty đã được admin xác thực chưa
+    private String status = "PENDING"; // PENDING, APPROVED, REJECTED, LOCKED
 
     private Instant createdAt;
 

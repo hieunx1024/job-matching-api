@@ -25,9 +25,12 @@ public class UserDetailsCustom implements UserDetailsService {
             throw new UsernameNotFoundException("Username/password không hợp lệ");
         }
 
+        boolean isEnabled = user.getStatus() == null || "ACTIVE".equals(user.getStatus());
+
         return new User(
                 user.getEmail(),
                 user.getPassword(),
+                isEnabled, true, true, true,
                 Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
 
     }

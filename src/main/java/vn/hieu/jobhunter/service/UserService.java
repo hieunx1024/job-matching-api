@@ -247,6 +247,7 @@ public class UserService {
         res.setCreatedAt(user.getCreatedAt());
         res.setGender(user.getGender());
         res.setAddress(user.getAddress());
+        res.setStatus(user.getStatus());
         return res;
     }
 
@@ -263,21 +264,6 @@ public class UserService {
         return this.userRepository.findByRefreshTokenAndEmail(token, email);
     }
 
-    // public User findOrCreateGoogleUser(GoogleIdToken.Payload payload) {
-    // String email = payload.getEmail();
-    //
-    // User user = userRepository.findByEmail(email);
-    // if (user != null) return user;
-    //
-    // user = new User();
-    // user.setEmail(email);
-    // user.setName((String) payload.get("name"));
-    // user.setProvider("GOOGLE");
-    // user.setEnabled(true);
-    // user.setRole(roleService.fetchByName("USER"));
-    //
-    // return userRepository.save(user);
-    // }
     public User findOrCreateGoogleUser(GoogleIdToken.Payload payload) {
         String email = payload.getEmail();
         String name = (String) payload.get("name");
@@ -289,18 +275,12 @@ public class UserService {
             user.setEmail(email);
             user.setName(name);
             user.setProvider("GOOGLE");
+            user.setStatus("ACTIVE"); // Google users are verified automatically
 
-            // 👇 THÊM DÒNG NÀY ĐỂ SỬA LỖI 👇
             // Set dummy password for Google users; they never use this to login
             user.setPassword(passwordEncoder.encode("GOOGLE_LOGIN_DUMMY_PASSWORD_123"));
 
-            // Set Role mặc định (nếu cần)
-            // Role userRole = this.roleService.fetchByName("USER");
-            // if (userRole != null) {
-            // user.setRole(userRole);
-            // }
-
-            user = this.handleCreateUser(user); // Hoặc userRepository.save(user)
+            user = this.handleCreateUser(user);
         }
 
         return user;
@@ -333,9 +313,18 @@ public class UserService {
     }
 
     public void activateUser(User user) {
-        user.setEnabled(true);
+        user.setStatus("ACTIVE");
         user.setVerificationToken(null);
         userRepository.save(user);
+    }
+
+    public User updateUserStatus(long id, String status) {
+        User user = this.fetchUserById(id);
+        if (user != null) {
+            user.setStatus(status);
+            return userRepository.save(user);
+        }
+        return null;
     }
 
     // =================== ROLE SELECTION ===================

@@ -117,6 +117,21 @@ public class CompanyController {
         return ResponseEntity.ok(updatedCompany);
     }
 
+    @PutMapping("/companies/{id}/status")
+    @ApiMessage("Update company status")
+    public ResponseEntity<Company> updateCompanyStatus(@PathVariable("id") long id, @RequestBody java.util.Map<String, String> payload) throws vn.hieu.jobhunter.util.error.PermissionException {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        User user = userService.handleGetUserByUsername(username);
+
+        if (user == null || user.getRole() == null || !"SUPER_ADMIN".equals(user.getRole().getName())) {
+            throw new vn.hieu.jobhunter.util.error.PermissionException("Chỉ Admin mới có quyền đổi trạng thái công ty.");
+        }
+
+        Company updated = companyService.updateCompanyStatus(id, payload.get("status"));
+        return ResponseEntity.ok(updated);
+    }
+
     @DeleteMapping("/companies/{id}")
     @ApiMessage("Delete company")
     @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")

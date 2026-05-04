@@ -41,13 +41,12 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     // Tìm user theo verification token
     User findByVerificationToken(String token);
 
-    // Tìm user theo email và đã kích hoạt (enabled)
-    User findByEmailAndEnabledTrue(String email);
-
-    // Tìm user theo email và chưa kích hoạt
-    User findByEmailAndEnabledFalse(String email);
+    // Tìm user theo email và trạng thái
+    User findByEmailAndStatus(String email, String status);
 
     // Tìm user với role và permissions (eager fetch để tạo JWT)
     @Query("SELECT u FROM User u LEFT JOIN FETCH u.role r LEFT JOIN FETCH r.permissions WHERE u.email = :email")
     User findByEmailWithRoleAndPermissions(@Param("email") String email);
+
+    long countByRole_Name(String roleName);
 }
