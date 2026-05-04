@@ -72,7 +72,8 @@ public class FileService {
             // Explicitly set public_id with extension for better browser recognition
             String originalName = file.getOriginalFilename();
             if (originalName != null && originalName.toLowerCase().endsWith(".pdf")) {
-                String publicId = originalName.substring(0, originalName.length() - 4) + "_" + System.currentTimeMillis();
+                // Ensure the public_id ends with .pdf
+                String publicId = originalName.substring(0, originalName.length() - 4) + "_" + System.currentTimeMillis() + ".pdf";
                 params.put("public_id", publicId);
             }
 
