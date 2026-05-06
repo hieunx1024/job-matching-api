@@ -58,6 +58,8 @@ public class User {
     private Instant passwordLastChangedAt;
     private String provider = "LOCAL";
     private String verificationToken; // token xác nhận email
+    private String passwordResetToken; // token khôi phục mật khẩu
+    private Instant passwordResetTokenExpiry; // thời gian hết hạn token khôi phục mật khẩu
     @ManyToOne
     @JoinColumn(name = "company_id")
     private Company company;

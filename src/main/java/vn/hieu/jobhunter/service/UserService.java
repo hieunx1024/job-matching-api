@@ -327,6 +327,50 @@ public class UserService {
         return null;
     }
 
+    // =================== PASSWORD RESET (FORGOT PASSWORD) ===================
+    public void handleForgotPassword(String email) throws IdInvalidException {
+        User user = this.userRepository.findByEmail(email);
+        if (user == null) {
+            throw new IdInvalidException("Email không tồn tại trong hệ thống");
+        }
+
+        String token = UUID.randomUUID().toString();
+        user.setPasswordResetToken(token);
+        user.setPasswordResetTokenExpiry(Instant.now().plusSeconds(900)); // Hết hạn sau 15 phút (900 giây)
+        userRepository.save(user);
+
+        // Gửi email khôi phục mật khẩu
+        String subject = "Khôi phục mật khẩu - JobHunter";
+        String resetUrl = "http://localhost:5173/reset-password?token=" + token;
+        String message = "Xin chào " + user.getName() + ",\n\n" +
+                "Bạn đã yêu cầu khôi phục mật khẩu trên hệ thống JobHunter.\n" +
+                "Vui lòng click vào link bên dưới để thiết lập mật khẩu mới (Link có hiệu lực trong 15 phút):\n" + resetUrl + "\n\n" +
+                "Nếu bạn không yêu cầu hành động này, vui lòng bỏ qua email này.";
+
+        SimpleMailMessage mailMessage = new SimpleMailMessage();
+        mailMessage.setTo(user.getEmail());
+        mailMessage.setSubject(subject);
+        mailMessage.setText(message);
+
+        javaMailSender.send(mailMessage);
+    }
+
+    public void handleResetPassword(String token, String newPassword) throws IdInvalidException {
+        User user = userRepository.findByPasswordResetToken(token);
+        if (user == null) {
+            throw new IdInvalidException("Mã xác thực không hợp lệ");
+        }
+
+        if (user.getPasswordResetTokenExpiry().isBefore(Instant.now())) {
+            throw new IdInvalidException("Yêu cầu khôi phục mật khẩu đã hết hạn. Vui lòng thử lại");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setPasswordResetToken(null);
+        user.setPasswordResetTokenExpiry(null);
+        userRepository.save(user);
+    }
+
     // =================== ROLE SELECTION ===================
     public User handleSelectRole(String email, String roleName) throws IdInvalidException {
         User currentUser = this.handleGetUserByUsername(email);

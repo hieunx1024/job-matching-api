@@ -193,9 +193,31 @@ public class AuthController {
 
         User user = this.userService.handleRegister(postUser);
 
+        // Tạo token và gửi email kích hoạt tài khoản
+        String verificationToken = this.userService.generateVerificationToken(user);
+        this.userService.sendVerificationEmail(user, verificationToken);
+
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(this.userService.convertToResCreateUserDTO(user));
+    }
+
+    // =================== VERIFY ACCOUNT (EMAIL ACTIVATION) ===================
+    @GetMapping("/auth/verify")
+    @ApiMessage("Verify account registration")
+    public ResponseEntity<String> verifyAccount(@RequestParam("token") String token) {
+        User user = this.userService.getUserByVerificationToken(token);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Kích hoạt thất bại</title></head><body style='font-family: sans-serif; text-align: center; padding-top: 100px; background-color: #f8fafc;'><div style='max-width: 500px; margin: 0 auto; background: white; padding: 40px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); border: 1px border #f1f5f9;'><h2 style='color: #ef4444; font-size: 24px; margin-bottom: 16px;'>Kích hoạt thất bại!</h2><p style='color: #64748b; font-size: 14px; line-height: 1.6; margin-bottom: 24px;'>Mã xác minh không hợp lệ hoặc liên kết đã hết hạn. Vui lòng tiến hành đăng ký lại tài khoản.</p><a href='http://localhost:5173/register' style='display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; box-shadow: 0 4px 12px rgb(37 99 235 / 0.2);'>Đăng ký lại</a></div></body></html>");
+        }
+
+        if ("ACTIVE".equals(user.getStatus())) {
+            return ResponseEntity.ok("<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Kích hoạt thành công</title></head><body style='font-family: sans-serif; text-align: center; padding-top: 100px; background-color: #f8fafc;'><div style='max-width: 500px; margin: 0 auto; background: white; padding: 40px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); border: 1px border #f1f5f9;'><h2 style='color: #10b981; font-size: 24px; margin-bottom: 16px;'>Tài khoản đã kích hoạt</h2><p style='color: #64748b; font-size: 14px; line-height: 1.6; margin-bottom: 24px;'>Tài khoản của bạn đã được kích hoạt từ trước. Bạn có thể truy cập hệ thống và đăng nhập ngay để tìm việc!</p><a href='http://localhost:5173/login' style='display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; box-shadow: 0 4px 12px rgb(37 99 235 / 0.2);'>Đăng nhập ngay</a></div></body></html>");
+        }
+
+        this.userService.activateUser(user);
+        return ResponseEntity.ok("<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Kích hoạt thành công</title></head><body style='font-family: sans-serif; text-align: center; padding-top: 100px; background-color: #f8fafc;'><div style='max-width: 500px; margin: 0 auto; background: white; padding: 40px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); border: 1px border #f1f5f9;'><h2 style='color: #10b981; font-size: 24px; margin-bottom: 16px;'>Chúc mừng! Kích hoạt thành công</h2><p style='color: #64748b; font-size: 14px; line-height: 1.6; margin-bottom: 24px;'>Chúc mừng bạn! Tài khoản đã được xác minh thành công. Hãy đăng nhập ngay để bắt đầu hành trình tìm kiếm công việc mơ ước tại JobHunter.</p><a href='http://localhost:5173/login' style='display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; box-shadow: 0 4px 12px rgb(37 99 235 / 0.2);'>Đăng nhập ngay</a></div></body></html>");
     }
 
     // =================== CHANGE PASSWORD ===================
@@ -204,6 +226,24 @@ public class AuthController {
     public ResponseEntity<Void> changePassword(
             @Valid @RequestBody ChangePasswordRequestDTO dto) throws IdInvalidException {
         this.userService.handleChangePassword(dto);
+        return ResponseEntity.ok().build();
+    }
+
+    // =================== FORGOT PASSWORD ===================
+    @PostMapping("/auth/forgot-password")
+    @ApiMessage("Forgot password - Request reset token via email")
+    public ResponseEntity<Void> forgotPassword(
+            @Valid @RequestBody vn.hieu.jobhunter.domain.request.ForgotPasswordRequestDTO dto) throws IdInvalidException {
+        this.userService.handleForgotPassword(dto.getEmail());
+        return ResponseEntity.ok().build();
+    }
+
+    // =================== RESET PASSWORD ===================
+    @PostMapping("/auth/reset-password")
+    @ApiMessage("Reset password - Apply new password using reset token")
+    public ResponseEntity<Void> resetPassword(
+            @Valid @RequestBody vn.hieu.jobhunter.domain.request.ResetPasswordRequestDTO dto) throws IdInvalidException {
+        this.userService.handleResetPassword(dto.getToken(), dto.getNewPassword());
         return ResponseEntity.ok().build();
     }
 

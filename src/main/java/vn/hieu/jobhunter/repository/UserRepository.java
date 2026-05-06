@@ -41,6 +41,9 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     // Tìm user theo verification token
     User findByVerificationToken(String token);
 
+    // Tìm user theo password reset token
+    User findByPasswordResetToken(String token);
+
     // Tìm user theo email và trạng thái
     User findByEmailAndStatus(String email, String status);
 
