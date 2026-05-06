@@ -3,6 +3,7 @@ package vn.hieu.jobhunter.domain;
 import java.time.Instant;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -22,7 +23,11 @@ public class CompanyRegistration {
     // 👤 Mỗi CompanyRegistration chỉ thuộc về 1 user
     @ManyToOne
     @JoinColumn(name = "user_id")
-    @JsonIgnore
+    @JsonIgnoreProperties({
+        "password", "refreshToken", "companyRegistrations", "resumes", 
+        "userCvs", "userSubscriptions", "verificationToken", 
+        "passwordResetToken", "passwordResetTokenExpiry"
+    })
     private User user;
 
     private String companyName;

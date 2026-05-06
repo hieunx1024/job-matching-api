@@ -5,7 +5,9 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
@@ -105,7 +107,22 @@ public class JobService {
         return this.fetchAll(spec, pageable);
     }
 
-    public ResUpdateJobDTO update(Job j, Job jobInDB) {
+    public ResUpdateJobDTO update(Job j, Job jobInDB) throws vn.hieu.jobhunter.util.error.IdInvalidException, vn.hieu.jobhunter.util.error.PostLimitExceededException {
+        // Kiểm tra kẽ hở: Nếu tin cũ đang đóng (active = false) hoặc đã hết hạn (endDate < NOW()) và tin mới bật sang mở (active = true)
+        boolean isCurrentlyInactive = !jobInDB.isActive() || (jobInDB.getEndDate() != null && jobInDB.getEndDate().isBefore(java.time.Instant.now()));
+        if (isCurrentlyInactive && j.isActive()) {
+            String currentUserEmail = vn.hieu.jobhunter.util.SecurityUtil.getCurrentUserLogin().orElse("");
+            this.jobPostingService.validateAndConsumeJobPost(currentUserEmail);
+
+            // 💡 CẬP NHẬT THỜI GIAN ĐĂNG TIN: Reset ngày tạo (createdAt) về thời điểm gia hạn hiện tại
+            jobInDB.setCreatedAt(java.time.Instant.now());
+
+            // 💡 TỰ ĐỘNG GIA HẠN 30 NGÀY: Nếu HR quên chọn lại ngày ở tương lai (hoặc vẫn để ngày cũ trong quá khứ)
+            if (j.getEndDate() == null || j.getEndDate().isBefore(java.time.Instant.now())) {
+                j.setStartDate(java.time.Instant.now());
+                j.setEndDate(java.time.Instant.now().plus(30, java.time.temporal.ChronoUnit.DAYS));
+            }
+        }
 
         // check skills
         if (j.getSkills() != null) {
@@ -167,7 +184,19 @@ public class JobService {
     }
 
     public ResultPaginationDTO fetchAll(Specification<Job> spec, Pageable pageable) {
-        Page<Job> pageUser = this.jobRepository.findAll(spec, pageable);
+        // Create prioritized sort: activeSubscriptionCount DESC, followed by any original sort
+        Sort prioritizedSort = Sort.by(Sort.Order.desc("activeSubscriptionCount"));
+        if (pageable.getSort().isSorted()) {
+            prioritizedSort = prioritizedSort.and(pageable.getSort());
+        }
+
+        Pageable prioritizedPageable = PageRequest.of(
+            pageable.getPageNumber(),
+            pageable.getPageSize(),
+            prioritizedSort
+        );
+
+        Page<Job> pageUser = this.jobRepository.findAll(spec, prioritizedPageable);
 
         ResultPaginationDTO rs = new ResultPaginationDTO();
         ResultPaginationDTO.Meta mt = new ResultPaginationDTO.Meta();

@@ -16,4 +16,8 @@ public interface JobRepository extends JpaRepository<Job, Long>,
         List<Job> findBySkillsIn(List<Skill> skills);
 
         long countByCompany(vn.hieu.jobhunter.domain.Company company);
+
+        @org.springframework.data.jpa.repository.Modifying
+        @org.springframework.data.jpa.repository.Query("UPDATE Job j SET j.active = false WHERE j.active = true AND j.endDate < :now")
+        int deactivateExpiredJobs(java.time.Instant now);
 }

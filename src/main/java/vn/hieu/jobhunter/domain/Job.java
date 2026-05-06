@@ -71,6 +71,9 @@ public class Job {
     private String createdBy;
     private String updatedBy;
 
+    @org.hibernate.annotations.Formula("(SELECT COALESCE(COUNT(*), 0) FROM user_subscriptions us JOIN users u ON us.user_id = u.id JOIN subscriptions s ON us.subscription_id = s.id WHERE u.email = {alias}.created_by AND us.active = true AND us.end_date > CURRENT_TIMESTAMP AND s.price > 0)")
+    private int activeSubscriptionCount;
+
     @ManyToOne
     @JoinColumn(name = "company_id")
     private Company company;

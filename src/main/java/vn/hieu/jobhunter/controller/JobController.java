@@ -64,7 +64,8 @@ public class JobController {
 
     @PutMapping("/jobs")
     @ApiMessage("Update a job")
-    public ResponseEntity<ResUpdateJobDTO> update(@Valid @RequestBody Job job) throws IdInvalidException {
+    public ResponseEntity<ResUpdateJobDTO> update(@Valid @RequestBody Job job) 
+            throws IdInvalidException, vn.hieu.jobhunter.util.error.PostLimitExceededException {
         Optional<Job> currentJob = this.jobService.fetchJobById(job.getId());
         if (!currentJob.isPresent()) {
             throw new IdInvalidException("Job not found");
