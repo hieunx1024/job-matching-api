@@ -201,8 +201,8 @@ public class UserController {
         if (profileUpdate.getAddress() != null) {
             currentUser.setAddress(profileUpdate.getAddress());
         }
-        if (profileUpdate.getAge() != 0) {
-            currentUser.setAge(profileUpdate.getAge());
+        if (profileUpdate.getDateOfBirth() != null) {
+            currentUser.setDateOfBirth(profileUpdate.getDateOfBirth());
         }
         if (profileUpdate.getGender() != null) {
             currentUser.setGender(profileUpdate.getGender());

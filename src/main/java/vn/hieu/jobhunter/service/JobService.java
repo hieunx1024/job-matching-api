@@ -214,6 +214,30 @@ public class JobService {
         return rs;
     }
 
+    public ResultPaginationDTO fetchAllWithScoring(Specification<Job> spec, Pageable pageable) {
+        // Tạo một Pageable mới KHÔNG CÓ SORT để ưu tiên Sort theo Score trong Specification
+        Pageable unsortedPageable = PageRequest.of(
+            pageable.getPageNumber(),
+            pageable.getPageSize(),
+            Sort.unsorted()
+        );
+
+        Page<Job> pageUser = this.jobRepository.findAll(spec, unsortedPageable);
+
+        ResultPaginationDTO rs = new ResultPaginationDTO();
+        ResultPaginationDTO.Meta mt = new ResultPaginationDTO.Meta();
+
+        mt.setPage(pageable.getPageNumber() + 1);
+        mt.setPageSize(pageable.getPageSize());
+        mt.setPages(pageUser.getTotalPages());
+        mt.setTotal(pageUser.getTotalElements());
+
+        rs.setMeta(mt);
+        rs.setResult(pageUser.getContent());
+
+        return rs;
+    }
+
     public long countJobsByCompany(Company company) {
         return this.jobRepository.countByCompany(company);
     }

@@ -1,6 +1,7 @@
 package vn.hieu.jobhunter.domain.response;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -18,7 +19,7 @@ public class ResUserDTO {
     private String name;
     private GenderEnum gender;
     private String address;
-    private int age;
+    private LocalDate dateOfBirth;
     private Instant updatedAt;
     private Instant createdAt;
     private String status;

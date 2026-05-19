@@ -1,5 +1,6 @@
 package vn.hieu.jobhunter.domain.response;
 
+import java.time.LocalDate;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -25,8 +26,9 @@ public class ResLoginDTO {
         private Role role;
         private CompanyUser company;
         private String address;
-        private Integer age;
+        private LocalDate dateOfBirth;
         private vn.hieu.jobhunter.util.constant.GenderEnum gender;
+        private String provider;
 
         public UserLogin(long id, String email, String name, Role role, CompanyUser company) {
             this.id = id;
@@ -36,15 +38,16 @@ public class ResLoginDTO {
             this.company = company;
         }
 
-        public UserLogin(long id, String email, String name, Role role, CompanyUser company, String address, Integer age, vn.hieu.jobhunter.util.constant.GenderEnum gender) {
+        public UserLogin(long id, String email, String name, Role role, CompanyUser company, String address, LocalDate dateOfBirth, vn.hieu.jobhunter.util.constant.GenderEnum gender, String provider) {
             this.id = id;
             this.email = email;
             this.name = name;
             this.role = role;
             this.company = company;
             this.address = address;
-            this.age = age;
+            this.dateOfBirth = dateOfBirth;
             this.gender = gender;
+            this.provider = provider;
         }
     }
 

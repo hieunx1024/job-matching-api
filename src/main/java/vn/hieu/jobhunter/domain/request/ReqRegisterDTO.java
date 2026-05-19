@@ -1,9 +1,10 @@
 package vn.hieu.jobhunter.domain.request;
 
+import java.time.LocalDate;
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Past;
 import lombok.Getter;
 import lombok.Setter;
 import vn.hieu.jobhunter.util.constant.GenderEnum;
@@ -21,13 +22,14 @@ public class ReqRegisterDTO {
     @NotBlank(message = "Password không được để trống")
     private String password;
 
-    @Min(value = 18, message = "Tuổi phải lớn hơn hoặc bằng 18")
-    private int age;
+    @NotNull(message = "Ngày sinh không được để trống")
+    @Past(message = "Ngày sinh phải là một ngày trong quá khứ")
+    private LocalDate dateOfBirth;
 
     @NotNull(message = "Giới tính không được để trống")
     private GenderEnum gender;
 
-    @NotBlank(message = "Địa chỉ không được để trống")
+    @NotBlank(message = "Vui lòng nhập Tỉnh/Thành phố")
     private String address;
 
     @NotBlank(message = "Vai trò không được để trống")

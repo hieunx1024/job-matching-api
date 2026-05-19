@@ -169,7 +169,7 @@ public class JobController {
             Pageable pageable) {
 
         Specification<Job> spec = vn.hieu.jobhunter.repository.JobSpecification.filterJob(name, location, skillIds, level, minSalary);
-        ResultPaginationDTO result = this.jobService.fetchAll(spec, pageable);
+        ResultPaginationDTO result = this.jobService.fetchAllWithScoring(spec, pageable);
 
         return ResponseEntity.ok(result);
     }

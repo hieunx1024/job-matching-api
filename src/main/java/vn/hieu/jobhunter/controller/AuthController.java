@@ -172,8 +172,9 @@ public class AuthController {
                                     currentUserDB.getCompany().getName())
                             : null,
                     currentUserDB.getAddress(),
-                    currentUserDB.getAge(),
-                    currentUserDB.getGender());
+                    currentUserDB.getDateOfBirth(),
+                    currentUserDB.getGender(),
+                    currentUserDB.getProvider());
             userGetAccount.setUser(userLogin);
         }
 
@@ -259,8 +260,9 @@ public class AuthController {
                         ? new ResLoginDTO.CompanyUser(user.getCompany().getId(), user.getCompany().getName())
                         : null,
                 user.getAddress(),
-                user.getAge(),
-                user.getGender());
+                user.getDateOfBirth(),
+                user.getGender(),
+                user.getProvider());
         res.setUser(userLogin);
 
         // Generate tokens

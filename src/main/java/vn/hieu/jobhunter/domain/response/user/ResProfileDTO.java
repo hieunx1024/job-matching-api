@@ -1,5 +1,6 @@
 package vn.hieu.jobhunter.domain.response.user;
 
+import java.time.LocalDate;
 import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
@@ -12,7 +13,7 @@ public class ResProfileDTO {
     private String email;
     private String name;
     private String address;
-    private int age;
+    private LocalDate dateOfBirth;
     private GenderEnum gender;
     private List<UserCvDTO> cvs;
 

@@ -1,6 +1,7 @@
 package vn.hieu.jobhunter.domain;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
@@ -40,7 +41,7 @@ public class User {
     @NotBlank(message = "password không được để trống")
     private String password;
 
-    private int age;
+    private LocalDate dateOfBirth;
 
     @Enumerated(EnumType.STRING)
     private GenderEnum gender;

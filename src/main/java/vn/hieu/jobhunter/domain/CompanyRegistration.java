@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import jakarta.validation.constraints.NotBlank;
 import vn.hieu.jobhunter.util.SecurityUtil;
 import vn.hieu.jobhunter.util.constant.RegistrationStatus;
 
@@ -37,6 +38,7 @@ public class CompanyRegistration {
     private String logo;
     private String facebookLink;
     private String githubLink;
+    @NotBlank(message = "Giấy tờ minh chứng không được để trống")
     private String verificationDocument;
     private String rejectionReason;
 

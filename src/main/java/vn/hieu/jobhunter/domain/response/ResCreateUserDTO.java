@@ -1,6 +1,7 @@
 package vn.hieu.jobhunter.domain.response;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -14,7 +15,7 @@ public class ResCreateUserDTO {
     private String email;
     private GenderEnum gender;
     private String address;
-    private int age;
+    private LocalDate dateOfBirth;
     private Instant createdAt;
     private CompanyUser company;
 

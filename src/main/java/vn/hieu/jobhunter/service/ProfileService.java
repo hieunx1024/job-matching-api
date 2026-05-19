@@ -67,7 +67,7 @@ public class ProfileService {
                     }
                 }
             }
-            if (reqUpdate.getAge() != null && reqUpdate.getAge() > 0) user.setAge(reqUpdate.getAge());
+            if (reqUpdate.getDateOfBirth() != null) user.setDateOfBirth(reqUpdate.getDateOfBirth());
             this.userRepository.save(user);
         }
 
@@ -102,7 +102,7 @@ public class ProfileService {
         res.setEmail(user.getEmail());
         res.setName(user.getName());
         res.setAddress(user.getAddress());
-        res.setAge(user.getAge());
+        res.setDateOfBirth(user.getDateOfBirth());
         res.setGender(user.getGender());
 
         List<UserCv> ucvs = this.userCvRepository.findByUserId(user.getId());

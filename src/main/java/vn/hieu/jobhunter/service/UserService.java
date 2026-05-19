@@ -88,7 +88,7 @@ public class UserService {
         user.setName(dto.getName());
         user.setEmail(dto.getEmail());
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
-        user.setAge(dto.getAge());
+        user.setDateOfBirth(dto.getDateOfBirth());
         user.setGender(dto.getGender());
         user.setAddress(dto.getAddress());
         user.setRole(role);
@@ -131,7 +131,7 @@ public class UserService {
         if (currentUser != null) {
             currentUser.setAddress(reqUser.getAddress());
             currentUser.setGender(reqUser.getGender());
-            currentUser.setAge(reqUser.getAge());
+            currentUser.setDateOfBirth(reqUser.getDateOfBirth());
             currentUser.setName(reqUser.getName());
 
             if (reqUser.getCompany() != null) {
@@ -171,7 +171,7 @@ public class UserService {
         res.setId(user.getId());
         res.setEmail(user.getEmail());
         res.setName(user.getName());
-        res.setAge(user.getAge());
+        res.setDateOfBirth(user.getDateOfBirth());
         res.setCreatedAt(user.getCreatedAt());
         res.setGender(user.getGender());
         res.setAddress(user.getAddress());
@@ -216,7 +216,7 @@ public class UserService {
 
         res.setId(user.getId());
         res.setName(user.getName());
-        res.setAge(user.getAge());
+        res.setDateOfBirth(user.getDateOfBirth());
         res.setUpdatedAt(user.getUpdatedAt());
         res.setGender(user.getGender());
         res.setAddress(user.getAddress());
@@ -242,7 +242,7 @@ public class UserService {
         res.setId(user.getId());
         res.setEmail(user.getEmail());
         res.setName(user.getName());
-        res.setAge(user.getAge());
+        res.setDateOfBirth(user.getDateOfBirth());
         res.setUpdatedAt(user.getUpdatedAt());
         res.setCreatedAt(user.getCreatedAt());
         res.setGender(user.getGender());
