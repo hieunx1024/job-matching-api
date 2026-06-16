@@ -212,12 +212,18 @@ public class ResumeController {
             // ✅ Admin xem tất cả resumes
             result = this.resumeService.fetchAllResume(spec, pageable);
         } else {
-            // ✅ User (HR) chỉ xem resume thuộc CÁC CÔNG VIỆC MÀ MÌNH TẠO 
+            // ✅ User (HR) xem resume thuộc công ty của mình
             if (user.getCompany() == null) {
                 // Không có công ty → danh sách rỗng
                 result = new ResultPaginationDTO();
             } else {
-                result = this.resumeService.fetchResumesByJobCreator(username, spec, pageable);
+                long companyId = user.getCompany().getId();
+                Specification<Resume> companySpec = (root, query, cb) -> cb.equal(root.get("job").get("company").get("id"), companyId);
+                Specification<Resume> finalSpec = companySpec;
+                if (spec != null) {
+                    finalSpec = finalSpec.and(spec);
+                }
+                result = this.resumeService.fetchAllResume(finalSpec, pageable);
             }
         }
 

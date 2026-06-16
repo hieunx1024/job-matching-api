@@ -97,6 +97,42 @@ public class VnpayPaymentStrategy implements PaymentStrategy {
         return paymentUrl;
     }
 
+    @Override
+    public boolean verifySignature(Map<String, String> params) {
+        String vnp_SecureHash = params.get("vnp_SecureHash");
+        if (vnp_SecureHash == null || vnp_SecureHash.isEmpty()) {
+            return false;
+        }
+
+        // Build list of field names and sort them
+        List<String> fieldNames = new ArrayList<>(params.keySet());
+        fieldNames.remove("vnp_SecureHash");
+        fieldNames.remove("vnp_SecureHashType");
+        Collections.sort(fieldNames);
+
+        StringBuilder hashData = new StringBuilder();
+        Iterator<String> itr = fieldNames.iterator();
+        while (itr.hasNext()) {
+            String fieldName = itr.next();
+            String fieldValue = params.get(fieldName);
+            if ((fieldValue != null) && (fieldValue.length() > 0)) {
+                try {
+                    hashData.append(fieldName);
+                    hashData.append('=');
+                    hashData.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII.toString()));
+                    if (itr.hasNext()) {
+                        hashData.append('&');
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        String calculatedHash = hmacSHA512(vnp_HashSecret, hashData.toString());
+        return calculatedHash.equalsIgnoreCase(vnp_SecureHash);
+    }
+
     private static String hmacSHA512(String key, String data) {
         try {
             Mac hmac512 = Mac.getInstance("HmacSHA512");

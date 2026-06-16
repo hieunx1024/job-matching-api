@@ -29,9 +29,14 @@ public class PaymentController {
     }
 
     @GetMapping("/vnpay-return")
-    public ResponseEntity<String> vnpayReturn(
-            @RequestParam("vnp_TxnRef") String txnRef,
-            @RequestParam("vnp_ResponseCode") String responseCode) {
+    public ResponseEntity<String> vnpayReturn(@RequestParam Map<String, String> params) {
+        boolean isValidSignature = paymentService.verifyVnpaySignature(params);
+        if (!isValidSignature) {
+            return ResponseEntity.badRequest().body("Signature verification failed");
+        }
+
+        String txnRef = params.get("vnp_TxnRef");
+        String responseCode = params.get("vnp_ResponseCode");
 
         if ("00".equals(responseCode)) {
             paymentService.processPaymentWebhook(txnRef, "SUCCESS");

@@ -32,12 +32,7 @@ public class PermissionInterceptor implements HandlerInterceptor {
             throws Exception {
 
         String path = (String) request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
-        String requestURI = request.getRequestURI();
         String httpMethod = request.getMethod();
-        System.out.println("Processing preHandle");
-        System.out.println("Path: " + path);
-        System.out.println("Method: " + httpMethod);
-        System.out.println("URI: " + requestURI);
 
         // check permission
         String email = SecurityUtil.getCurrentUserLogin().orElse("");
@@ -60,14 +55,20 @@ public class PermissionInterceptor implements HandlerInterceptor {
                 Role role = user.getRole();
                 if (role != null) {
                     List<Permission> permissions = role.getPermissions();
-                    boolean isAllow = permissions.stream().anyMatch(item -> item.getApiPath().equals(path)
+                    boolean isAllow = permissions.stream().anyMatch(item -> item.getApiPath() != null
+                            && item.getApiPath().equals(path)
                             && item.getMethod().equals(httpMethod));
 
-                    if (isAllow == false) {
+                    if (!isAllow) {
                         throw new PermissionException("You do not have permission to access this endpoint.");
                     }
                 } else {
-                    throw new PermissionException("No role assigned. Access denied.");
+                    // For users with no role yet (e.g., newly registered social login users)
+                    // We allow them to register their company during onboarding
+                    boolean isCompanyRegistration = "/api/v1/company-registrations".equals(path) && "POST".equalsIgnoreCase(httpMethod);
+                    if (!isCompanyRegistration) {
+                        throw new PermissionException("No role assigned. Access denied.");
+                    }
                 }
             }
         }

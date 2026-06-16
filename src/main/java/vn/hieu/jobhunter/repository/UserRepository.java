@@ -51,5 +51,10 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     @Query("SELECT u FROM User u LEFT JOIN FETCH u.role r LEFT JOIN FETCH r.permissions WHERE u.email = :email")
     User findByEmailWithRoleAndPermissions(@Param("email") String email);
 
+    @org.springframework.transaction.annotation.Transactional
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("UPDATE User u SET u.refreshToken = :token WHERE u.email = :email")
+    void updateRefreshToken(@Param("token") String token, @Param("email") String email);
+
     long countByRole_Name(String roleName);
 }

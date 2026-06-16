@@ -29,14 +29,17 @@ public class JobSearchFunction {
     private final CompanyRepository companyRepository;
     private final String frontendUrl;
 
-    public JobSearchFunction(JobRepository jobRepository, ResumeRepository resumeRepository, CompanyRepository companyRepository, @org.springframework.beans.factory.annotation.Value("${jobhunter.frontend.url}") String frontendUrl) {
+    public JobSearchFunction(JobRepository jobRepository, ResumeRepository resumeRepository,
+            CompanyRepository companyRepository,
+            @org.springframework.beans.factory.annotation.Value("${jobhunter.frontend.url}") String frontendUrl) {
         this.jobRepository = jobRepository;
         this.resumeRepository = resumeRepository;
         this.companyRepository = companyRepository;
         this.frontendUrl = frontendUrl;
     }
 
-    public record JobSearchRequest(String location, String skill, Double minSalary, Double maxSalary, String level, String companyName) {
+    public record JobSearchRequest(String location, String skill, Double minSalary, Double maxSalary, String level,
+            String companyName) {
     }
 
     public record ApplicantStatusRequest(String jobTitle) {
@@ -56,27 +59,27 @@ public class JobSearchFunction {
     public Function<CompanyInfoRequest, CompanyInfoDTO> getCompanyInfo() {
         return request -> {
             System.out.println("AI called getCompanyInfo with: " + request);
-            
+
             if (request.companyName() == null || request.companyName().isBlank()) {
                 return null;
             }
 
-            Specification<Company> spec = (root, query, cb) -> cb.like(cb.lower(root.get("name")), "%" + request.companyName().toLowerCase() + "%");
-            
+            Specification<Company> spec = (root, query, cb) -> cb.like(cb.lower(root.get("name")),
+                    "%" + request.companyName().toLowerCase() + "%");
+
             List<Company> companies = companyRepository.findAll(spec);
-            
+
             if (companies.isEmpty()) {
                 return null;
             }
-            
+
             Company company = companies.get(0); // Get the first match
-            
+
             return new CompanyInfoDTO(
                     company.getName(),
                     company.getAddress(),
                     company.getDescription(),
-                    company.getLogo()
-            );
+                    company.getLogo());
         };
     }
 
@@ -86,24 +89,27 @@ public class JobSearchFunction {
         return request -> {
             String email = vn.hieu.jobhunter.util.SecurityUtil.getCurrentUserLogin().orElse("");
             if (email.isBlank()) {
-                return List.of(new ApplicantStatusDTO("N/A", "N/A", "Chưa đăng nhập", "Vui lòng đăng nhập để kiểm tra trạng thái."));
+                return List.of(new ApplicantStatusDTO("N/A", "N/A", "Chưa đăng nhập",
+                        "Vui lòng đăng nhập để kiểm tra trạng thái."));
             }
             System.out.println("AI called getApplicantStatus for user: " + email + " with request: " + request);
 
             Specification<Resume> spec = (root, query, cb) -> cb.equal(root.get("email"), email);
 
             if (request.jobTitle() != null && !request.jobTitle().isBlank()) {
-                spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get("job").get("name")), "%" + request.jobTitle().toLowerCase() + "%"));
+                spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get("job").get("name")),
+                        "%" + request.jobTitle().toLowerCase() + "%"));
             }
 
             List<Resume> resumes = resumeRepository.findAll(spec);
 
             return resumes.stream().map(resume -> new ApplicantStatusDTO(
                     resume.getJob() != null ? resume.getJob().getName() : "N/A",
-                    resume.getJob() != null && resume.getJob().getCompany() != null ? resume.getJob().getCompany().getName() : "N/A",
+                    resume.getJob() != null && resume.getJob().getCompany() != null
+                            ? resume.getJob().getCompany().getName()
+                            : "N/A",
                     resume.getStatus() != null ? resume.getStatus().name() : "N/A",
-                    resume.getNote()
-            )).collect(Collectors.toList());
+                    resume.getNote())).collect(Collectors.toList());
         };
     }
 
@@ -161,8 +167,7 @@ public class JobSearchFunction {
             Join<Job, Skill> skills = root.join("skills", jakarta.persistence.criteria.JoinType.LEFT);
             return cb.or(
                     cb.like(cb.lower(root.get("name")), "%" + skill.toLowerCase() + "%"),
-                    cb.like(cb.lower(skills.get("name")), "%" + skill.toLowerCase() + "%")
-            );
+                    cb.like(cb.lower(skills.get("name")), "%" + skill.toLowerCase() + "%"));
         };
     }
 
@@ -177,7 +182,8 @@ public class JobSearchFunction {
     private Specification<Job> hasLevel(String level) {
         return (root, query, cb) -> {
             try {
-                vn.hieu.jobhunter.util.constant.LevelEnum levelEnum = vn.hieu.jobhunter.util.constant.LevelEnum.valueOf(level.toUpperCase());
+                vn.hieu.jobhunter.util.constant.LevelEnum levelEnum = vn.hieu.jobhunter.util.constant.LevelEnum
+                        .valueOf(level.toUpperCase());
                 return cb.equal(root.get("level"), levelEnum);
             } catch (Exception e) {
                 return cb.conjunction(); // Return always true if level is invalid
@@ -186,6 +192,7 @@ public class JobSearchFunction {
     }
 
     private Specification<Job> hasCompanyName(String companyName) {
-        return (root, query, cb) -> cb.like(cb.lower(root.get("company").get("name")), "%" + companyName.toLowerCase() + "%");
+        return (root, query, cb) -> cb.like(cb.lower(root.get("company").get("name")),
+                "%" + companyName.toLowerCase() + "%");
     }
 }

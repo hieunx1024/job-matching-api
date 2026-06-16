@@ -17,6 +17,7 @@ public class ResAdminDashboardDTO {
     private long totalCandidates;
     private long totalHRs;
     private List<RecentPayment> recentPayments;
+    private List<TimeSeriesData> timeSeriesData;
 
     @Getter
     @Setter
@@ -27,5 +28,18 @@ public class ResAdminDashboardDTO {
         private double amount;
         private Instant paymentDate;
         private String status;
+    }
+
+    @Getter
+    @Setter
+    @lombok.AllArgsConstructor
+    @lombok.NoArgsConstructor
+    public static class TimeSeriesData {
+        private String name;
+        private long users;
+        private long companies;
+        private long jobs;
+        private long resumes;
+        private long sub;
     }
 }

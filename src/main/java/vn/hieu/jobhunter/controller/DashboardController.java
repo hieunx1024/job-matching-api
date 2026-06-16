@@ -25,6 +25,14 @@ public class DashboardController {
     private final PaymentHistoryRepository paymentHistoryRepository;
     private final UserSubscriptionRepository userSubscriptionRepository;
     private final vn.hieu.jobhunter.repository.ResumeRepository resumeRepository;
+    private final jakarta.persistence.EntityManager entityManager;
+
+    private long countBefore(String entityName, String dateField, java.time.Instant date) {
+        return entityManager.createQuery(
+                "SELECT COUNT(e) FROM " + entityName + " e WHERE e." + dateField + " <= :date", Long.class)
+                .setParameter("date", date)
+                .getSingleResult();
+    }
 
     @GetMapping("/admin")
     public ResponseEntity<ResAdminDashboardDTO> getAdminDashboardStats()
@@ -64,6 +72,30 @@ public class DashboardController {
             return rp;
         }).collect(java.util.stream.Collectors.toList());
         dto.setRecentPayments(recentPayments);
+
+        // Generate monthly time-series growth stats for the last 6 months ending at current Month
+        java.time.YearMonth currentYearMonth = java.time.YearMonth.now();
+        java.util.List<ResAdminDashboardDTO.TimeSeriesData> timeSeries = new java.util.ArrayList<>();
+        for (int i = 5; i >= 0; i--) {
+            java.time.YearMonth ym = currentYearMonth.minusMonths(i);
+            java.time.LocalDate endOfYmLocalDate = ym.atEndOfMonth();
+            java.time.LocalDateTime endOfYmLocalDateTime = endOfYmLocalDate.atTime(23, 59, 59);
+            java.time.Instant endOfMonthInstant = endOfYmLocalDateTime.atZone(java.time.ZoneId.systemDefault()).toInstant();
+
+            String monthName = "T" + ym.getMonthValue();
+            
+            long usersCount = countBefore("User", "createdAt", endOfMonthInstant);
+            long companiesCount = countBefore("Company", "createdAt", endOfMonthInstant);
+            long jobsCount = countBefore("Job", "createdAt", endOfMonthInstant);
+            long resumesCount = countBefore("Resume", "createdAt", endOfMonthInstant);
+            long subCount = countBefore("UserSubscription", "createdAt", endOfMonthInstant);
+
+            ResAdminDashboardDTO.TimeSeriesData tsd = new ResAdminDashboardDTO.TimeSeriesData(
+                monthName, usersCount, companiesCount, jobsCount, resumesCount, subCount
+            );
+            timeSeries.add(tsd);
+        }
+        dto.setTimeSeriesData(timeSeries);
 
         return ResponseEntity.ok(dto);
     }

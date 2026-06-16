@@ -104,7 +104,7 @@ public class CompanyService {
 
     /**
      * 📌 HR đăng ký công ty mới (chỉ được đăng ký 1 lần)
-     * 
+     *
      * @param currentUser - User hiện tại (HR)
      * @param reqCompany  - Thông tin công ty cần đăng ký
      * @return Company đã tạo
@@ -137,7 +137,7 @@ public class CompanyService {
 
     /**
      * 📌 HR cập nhật thông tin công ty của mình
-     * 
+     *
      * @param currentUser - User hiện tại (HR)
      * @param reqCompany  - Thông tin công ty cần cập nhật
      * @return Company đã cập nhật
@@ -165,7 +165,7 @@ public class CompanyService {
 
     /**
      * 📌 Lấy thông tin công ty của HR hiện tại
-     * 
+     *
      * @param currentUser - User hiện tại (HR)
      * @return Company hoặc null nếu chưa có
      */

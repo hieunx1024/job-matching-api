@@ -96,4 +96,12 @@ public class PaymentService {
             userSubscriptionRepository.save(userSub);
         }
     }
+
+    public boolean verifyVnpaySignature(Map<String, String> params) {
+        PaymentStrategy strategy = paymentStrategies.get("VNPAY");
+        if (strategy != null) {
+            return strategy.verifySignature(params);
+        }
+        return false;
+    }
 }

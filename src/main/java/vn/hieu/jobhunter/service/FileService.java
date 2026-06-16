@@ -106,7 +106,11 @@ public class FileService {
             return 1;
 
         try {
-            Path path = getBasePath(folder).resolve(fileName);
+            Path basePath = getBasePath(folder).normalize().toAbsolutePath();
+            Path path = basePath.resolve(fileName).normalize().toAbsolutePath();
+            if (!path.startsWith(basePath)) {
+                return 0;
+            }
             File file = path.toFile();
             if (!file.exists() || file.isDirectory())
                 return 0;
@@ -118,7 +122,13 @@ public class FileService {
 
     public InputStreamResource getResource(String fileName, String folder)
             throws URISyntaxException, FileNotFoundException {
-        Path path = getBasePath(folder).resolve(fileName);
+        Path basePath = getBasePath(folder).normalize().toAbsolutePath();
+        Path path = basePath.resolve(fileName).normalize().toAbsolutePath();
+
+        if (!path.startsWith(basePath)) {
+            throw new SecurityException("Directory traversal attack detected!");
+        }
+
         File file = path.toFile();
         return new InputStreamResource(new FileInputStream(file));
     }
